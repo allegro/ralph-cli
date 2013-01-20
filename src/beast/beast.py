@@ -66,7 +66,13 @@ def get_resource(settings, resource):
 
 def do_main(arguments):
     settings = dict()
-    execfile(os.path.expanduser("~/.beast/config"), settings)
+    f = os.path.expanduser("~/.beast/config")
+    try:
+        execfile(f, settings)
+    except IOError:
+        print("Config file ~/.beast/config doesn't exist.")
+        sys.exit(4)
+             
     if arguments.get('inspect'):
         inspect(arguments, settings)
     elif arguments.get('export'):

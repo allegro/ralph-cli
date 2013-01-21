@@ -167,5 +167,9 @@ def high(s):
 
 
 if __name__ == '__main__':
+    main()
+
+def main():
     arguments = docopt(__doc__, version='0.1')
     do_main(arguments)
+    

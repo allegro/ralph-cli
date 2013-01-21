@@ -37,6 +37,7 @@ setup (
     ],
     entry_points={
         'console_scripts': [
+		'beast = beast.beast:main',
         ],
     },
     classifiers = [

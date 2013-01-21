@@ -5,11 +5,11 @@ To install just type:
 
 You need to create ~/.beast/config file like this:
 
-``python
+`python
 username="ralph_username"                                                                                       
 api_key="478457f9f32323201ebde8ef79cd9d3a028ced56747"
 url="https://ralph.url.com"
-``
+`
 That's it.
 
 Type `~/beast export dev` 

@@ -15,3 +15,4 @@ git clone git@github.com:vi4m/beast.git
 cd beast 
 pip install -e . 
 ln -s ~/.beast/beast/src/beast/beast ~/beast
+chmod a+x ~/.beast/beast/src/beast/beast 

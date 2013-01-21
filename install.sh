@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 mkdir ~/.beast 2>/dev/null
 

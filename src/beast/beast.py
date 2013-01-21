@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """Beast - ralph REST client.
 
 Usage:
- beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv]
+ beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--trim]
  beast update <resource> <id> <fields> <fields_values>
  beast inspect [--resource=resource]
  beast -h | --help
@@ -28,8 +29,12 @@ import slumber
 import yaml
 import csv
 
+import unicodedata
 
-def put_resource(settings, resource, id, data):
+from collections import defaultdict
+
+
+def get_session(settings):
     username = settings.get('username')
     api_key = settings.get('api_key')
     url = settings.get('url')
@@ -41,9 +46,19 @@ def put_resource(settings, resource, id, data):
         '%(url)s/api/v0.9/' % dict(url=url),
         session=s,
     )
+    return s
+
+
+def put_resource(settings, resource, id, data):
+    username = settings.get('username')
+    api_key = settings.get('api_key')
+    s = get_session(settings)
     try:
         data = getattr(s, resource)(id).put(
-        data=data,username=username, api_key=api_key)
+            data=data,
+            username=username,
+            api_key=api_key
+        )
     except slumber.exceptions.HttpClientError as e:
         print 'Error: ', e.content
     return data
@@ -52,15 +67,7 @@ def put_resource(settings, resource, id, data):
 def get_resource(settings, resource):
     username = settings.get('username')
     api_key = settings.get('api_key')
-    url = settings.get('url')
-    if not username or not api_key or not url:
-        print("username, api_key and url in ~/.beast/config are required.")
-        sys.exit(0)
-    s = requests.session(verify=False)
-    s = slumber.API(
-        '%(url)s/api/v0.9/' % dict(url=url),
-        session=s,
-    )
+    s = get_session(settings)
     data = getattr(s, resource).get(username=username, api_key=api_key)
     return data
 
@@ -91,7 +98,6 @@ def update(arguments, settings):
     for row in csv.reader([fields_values],
         quotechar='"', quoting=csv.QUOTE_MINIMAL):
         pass
-
     data = dict(zip(fields, row))
     s = put_resource(settings, resource, id, data)
 
@@ -114,7 +120,46 @@ def inspect(arguments, settings):
             print '\n'.join(sorted(list_of_keys))
 
 
+def console_repr(field):
+    if type(field) == type(u''):
+        if '/api/v0.9/' in field:
+            field = unicode(field.replace('/api/v0.9/',''))
+        else:
+            field = unicode(field[:10])
+    elif type(field) == type(False):
+        field = 'x' if field else 'o'
+    elif type(field) == type({}):
+        field = field['id']
+    elif type(field) == type(None):
+        field = ''
+    elif type(field) == type([]):
+        field = ','.join([console_repr(subfield) for subfield in field])
+    else:
+        field = unicode(field)
+    return field
+
+
+
+def remove_links(row):
+    for field in row.keys():
+        row[field] = console_repr(row[field])
+
+
+def smallest_list_of(widths, of, max_width):
+    of_truncated = []
+    current_width = 0
+    for key in of:
+        width = widths.get(key)
+        if current_width + width > max_width:
+            return of_truncated
+        else:
+            of_truncated.append(key)
+        current_width += width
+    return of_truncated
+
+
 def export(arguments, settings):
+    trim_columns = arguments.get('--trim')
     pp = pprint.PrettyPrinter(indent=4)
     resource = arguments.get('<resource>')
     filter_expression = arguments.get('--filter')
@@ -127,18 +172,64 @@ def export(arguments, settings):
     for row in data['objects']:
         if not first:
             first = False
+        try:
+            e = eval("%s" % (filter_expression or True))
+        except Exception as e:
+            print("Filter epression invalid: %s" % e)
+            sys.exit(5)
 
-        e = eval("%s" % (filter_expression or True))
         all_fields = row.keys()
         of = output_fields.split(',') if output_fields else all_fields
         if e:
             if csv_export:
                 print ','.join([unicode(multiget(row, key)) for key in of])
             else:
+                remove_links(row)
                 result_data.append(row)
 
-    if result_data:
-        print high(yaml.safe_dump(result_data))
+    widths = defaultdict(int)
+    for row in of:
+        if not trim_columns:
+            widths[row] = len(row) + 4
+        else:
+            widths[row] = 5
+
+    for row in result_data:
+        for key in row.keys():
+            widths[key] = max(widths[key], len(row[key])+4)
+            all_fields = row.keys()
+            of = output_fields.split(',') if output_fields else all_fields
+
+    max_width = 120
+
+    if not output_fields:
+        of = smallest_list_of(widths, of, max_width)
+
+    print "-" * max_width
+    sys.stdout.write("|")
+    for key in of:
+        fill = widths.get(key)
+        align = widths.get(key)
+        sys.stdout.write(
+            ' {: <{fill}.{align}}|'.format(
+                key, fill=fill-4, align=align-4))
+    sys.stdout.write('\n')
+
+    for row in result_data:
+        print "-" * max_width
+        sys.stdout.write("|")
+        for key in of:
+            #key = row.keys()[key_row]
+            fill = widths.get(key)
+            align = widths.get(key)
+            sys.stdout.write(
+                ' {: <{fill}.{align}}|'.format(
+                    row[key].encode('utf-8','ignore'), fill=fill-4, align=align-4))
+        sys.stdout.write('\n')
+
+
+    #if result_data:
+    #    print high(yaml.safe_dump(result_data))
 
 
 def multiget(row, key):

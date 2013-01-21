@@ -1,6 +1,6 @@
 To install just type:
 
-  curl https://raw.github.com/vi4m/beast/master/install.sh | sh -
+  curl https://raw.github.com/vi4m/beast/master/install.sh | bash -
 
 
 You need to create ~/.beast/config file like this:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """Beast - ralph REST client.
 
 Usage:
@@ -35,10 +36,10 @@ def put_resource(settings, resource, id, data):
     if not username or not api_key or not url:
         print("username, api_key and url in ~/.beast/config are required.")
         sys.exit(2)
-    #s = requests.session(verify=False)
+    s = requests.session(verify=False)
     s = slumber.API(
         '%(url)s/api/v0.9/' % dict(url=url),
-    #    session=s,
+        session=s,
     )
     try:
         data = getattr(s, resource)(id).put(
@@ -72,7 +73,7 @@ def do_main(arguments):
     except IOError:
         print("Config file ~/.beast/config doesn't exist.")
         sys.exit(4)
-             
+
     if arguments.get('inspect'):
         inspect(arguments, settings)
     elif arguments.get('export'):
@@ -87,7 +88,7 @@ def update(arguments, settings):
     fields = arguments.get('<fields>').split(',')
     fields_values = arguments.get('<fields_values>')
 
-    for row in csv.reader([fields_values], 
+    for row in csv.reader([fields_values],
         quotechar='"', quoting=csv.QUOTE_MINIMAL):
         pass
 
@@ -166,10 +167,10 @@ def high(s):
         )
 
 
-if __name__ == '__main__':
-    main()
-
 def main():
     arguments = docopt(__doc__, version='0.1')
     do_main(arguments)
-    
+
+if __name__ == '__main__':
+    main()
+

@@ -4,8 +4,9 @@
 """Beast - ralph REST client.
 
 Usage:
- beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--trim] [--limit=limit]
+ beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--yaml] [--trim] [--limit=limit]
  beast update <resource> <id> <fields> <fields_values>
+ beast export
  beast inspect [--resource=resource]
  beast -h | --help
  beast --version
@@ -26,10 +27,7 @@ import pygments.formatters
 import pygments.lexers
 import requests
 import slumber
-import yaml
 import csv
-
-import unicodedata
 
 from collections import defaultdict
 
@@ -64,7 +62,7 @@ def put_resource(settings, resource, id, data):
     return data
 
 
-def get_resource(settings, resource, limit):
+def get_resource(settings, resource, limit=None):
     username = settings.get('username')
     api_key = settings.get('api_key')
     s = get_session(settings)
@@ -102,7 +100,7 @@ def update(arguments, settings):
         quotechar='"', quoting=csv.QUOTE_MINIMAL):
         pass
     data = dict(zip(fields, row))
-    s = put_resource(settings, resource, id, data)
+    put_resource(settings, resource, id, data)
 
 
 def inspect(arguments, settings):
@@ -169,10 +167,13 @@ def export(arguments, settings):
     filter_expression = arguments.get('--filter')
     output_fields = arguments.get('--fields')
     csv_export = arguments.get('--csv')
+    if not resource:
+        print "Resource not specified. Type beast inspect [resource] to inspect available fields."
+        return inspect(arguments, settings)
     data = get_resource(settings, resource, limit)
     result_data = []
     first = True
-    if limit: 
+    if limit:
         print "Limited rows requested: %s" % limit
     for row in data['objects']:
         if not first:
@@ -187,50 +188,57 @@ def export(arguments, settings):
         of = output_fields.split(',') if output_fields else all_fields
         if e:
             if csv_export:
-                print ','.join([unicode(multiget(row, key)) for key in of])
+                result_data.append(','.join([unicode(multiget(row, key)) for key in of]))
             else:
                 remove_links(row)
                 result_data.append(row)
+    if csv_export:
+        for row in of:
+            sys.stdout.write(row)
+            sys.stdout.write(",")
+        print
+        for i in result_data:
+            print(i)
+    else:
+        widths = defaultdict(int)
+        for row in of:
+            if not trim_columns:
+                widths[row] = len(row) + 4
+            else:
+                widths[row] = 5
 
-    widths = defaultdict(int)
-    for row in of:
-        if not trim_columns:
-            widths[row] = len(row) + 4
-        else:
-            widths[row] = 5
+        for row in result_data:
+            for key in row.keys():
+                widths[key] = max(widths[key], len(row[key])+4)
+                all_fields = row.keys()
+                of = output_fields.split(',') if output_fields else all_fields
 
-    for row in result_data:
-        for key in row.keys():
-            widths[key] = max(widths[key], len(row[key])+4)
-            all_fields = row.keys()
-            of = output_fields.split(',') if output_fields else all_fields
+        max_width = 120
 
-    max_width = 120
+        if not output_fields:
+            of = smallest_list_of(widths, of, max_width)
 
-    if not output_fields:
-        of = smallest_list_of(widths, of, max_width)
-
-    print "-" * max_width
-    sys.stdout.write("|")
-    for key in of:
-        fill = widths.get(key)
-        align = widths.get(key)
-        sys.stdout.write(
-            ' {: <{fill}.{align}}|'.format(
-                key, fill=fill-4, align=align-4))
-    sys.stdout.write('\n')
-
-    for row in result_data:
         print "-" * max_width
         sys.stdout.write("|")
         for key in of:
-            #key = row.keys()[key_row]
             fill = widths.get(key)
             align = widths.get(key)
             sys.stdout.write(
                 ' {: <{fill}.{align}}|'.format(
-                    row[key].encode('utf-8','ignore'), fill=fill-4, align=align-4))
+                    key, fill=fill-4, align=align-4))
         sys.stdout.write('\n')
+
+        for row in result_data:
+            print "-" * max_width
+            sys.stdout.write("|")
+            for key in of:
+                #key = row.keys()[key_row]
+                fill = widths.get(key)
+                align = widths.get(key)
+                sys.stdout.write(
+                    ' {: <{fill}.{align}}|'.format(
+                        row[key].encode('utf-8','ignore'), fill=fill-4, align=align-4))
+            sys.stdout.write('\n')
 
 
     #if result_data:

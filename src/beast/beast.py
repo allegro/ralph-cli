@@ -4,7 +4,7 @@
 """Beast - ralph REST client.
 
 Usage:
- beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--trim]
+ beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--trim] [--limit=limit]
  beast update <resource> <id> <fields> <fields_values>
  beast inspect [--resource=resource]
  beast -h | --help
@@ -64,11 +64,14 @@ def put_resource(settings, resource, id, data):
     return data
 
 
-def get_resource(settings, resource):
+def get_resource(settings, resource, limit):
     username = settings.get('username')
     api_key = settings.get('api_key')
     s = get_session(settings)
-    data = getattr(s, resource).get(username=username, api_key=api_key)
+    if limit:
+        data = getattr(s, resource).get(limit=limit, username=username, api_key=api_key)
+    else:
+        data = getattr(s, resource).get(limit=0, username=username, api_key=api_key)
     return data
 
 
@@ -162,13 +165,15 @@ def export(arguments, settings):
     trim_columns = arguments.get('--trim')
     pp = pprint.PrettyPrinter(indent=4)
     resource = arguments.get('<resource>')
+    limit = arguments.get('--limit')
     filter_expression = arguments.get('--filter')
     output_fields = arguments.get('--fields')
     csv_export = arguments.get('--csv')
-    data = get_resource(settings, resource)
+    data = get_resource(settings, resource, limit)
     result_data = []
     first = True
-
+    if limit: 
+        print "Limited rows requested: %s" % limit
     for row in data['objects']:
         if not first:
             first = False

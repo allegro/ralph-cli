@@ -133,7 +133,7 @@ Beast can prepare data to export ``csv``, ``yaml`` or ``trim`` format.
 
 If you use Windows, yours home directory path is: ::
 
-  c:\cygwin\home\user_name\
+  c:\cygwin\home\windows_user_name\
 
 You can also open file from console in yours text editor and save on preferred
 place. ::

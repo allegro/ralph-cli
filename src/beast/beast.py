@@ -17,19 +17,18 @@ Options:
 
 """
 
+import csv
 import os
 import pprint
-import sys
-
 import pygments
 import pygments.formatters
 import pygments.lexers
 import requests
 import slumber
-import csv
+import sys
 
-from docopt import docopt
 from collections import defaultdict
+from docopt import docopt
 
 
 def get_session(settings):
@@ -140,7 +139,6 @@ def console_repr(field):
     return field
 
 
-
 def remove_links(row):
     for field in row.keys():
         row[field] = console_repr(row[field])
@@ -183,7 +181,6 @@ def export(arguments, settings):
         except Exception as e:
             print("Filter epression invalid: %s" % e)
             sys.exit(5)
-
         all_fields = row.keys()
         of = output_fields.split(',') if output_fields else all_fields
         if e:
@@ -206,18 +203,14 @@ def export(arguments, settings):
                 widths[row] = len(row) + 4
             else:
                 widths[row] = 5
-
         for row in result_data:
             for key in row.keys():
                 widths[key] = max(widths[key], len(row[key])+4)
                 all_fields = row.keys()
                 of = output_fields.split(',') if output_fields else all_fields
-
         max_width = 120
-
         if not output_fields:
             of = smallest_list_of(widths, of, max_width)
-
         print "-" * max_width
         sys.stdout.write("|")
         for key in of:
@@ -227,7 +220,6 @@ def export(arguments, settings):
                 ' {: <{fill}.{align}}|'.format(
                     key, fill=fill-4, align=align-4))
         sys.stdout.write('\n')
-
         for row in result_data:
             print "-" * max_width
             sys.stdout.write("|")
@@ -272,4 +264,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

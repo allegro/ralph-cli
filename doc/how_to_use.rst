@@ -2,7 +2,7 @@
 How to use
 ==========
 
-If you really don't know what do you can do try uses help command::
+Use help command to display available options::
 
   $ ~/beast -h
 
@@ -12,7 +12,7 @@ otherwise...
 List all available resources
 ----------------------------
 
-If you wanna preview api resources use: ::
+If you want to preview all api resources: ::
 
   $ ~/beast inspect
 
@@ -28,7 +28,7 @@ Output: ::
   windowsdevice
 
 
-You can see also resources field: ::
+You can also list all the resource fields: ::
 
   $ ~/beast inspect --resource=venture
 
@@ -89,7 +89,7 @@ Fields
 ~~~~~~
 
 If you need to filter data, and no builtin API filter is available, you can use
-additional filtering by ordinar python expressions using row dict variable ::
+additional filtering by ordinar python expressions using ``row`` dict variable ::
 
   $ ~/beast export venture --fields=name,symbol
 

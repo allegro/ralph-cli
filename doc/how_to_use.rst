@@ -88,7 +88,8 @@ Output: ::
 Fields
 ~~~~~~
 
-Allows you to select the fields::
+If you need to filter data, and no builtin API filter is available, you can use
+additional filtering by ordinar python expressions using row dict variable ::
 
   $ ~/beast export venture --fields=name,symbol
 
@@ -124,8 +125,8 @@ Output: ::
   ------------------------------------------------------------------------------------------------------------------------
 
 
-Export to file
-~~~~~~~~~~~~~~
+Export to the file
+~~~~~~~~~~~~~~~~~~
 
 Beast can prepare data to export ``csv``, ``yaml`` or ``trim`` format.
 ::

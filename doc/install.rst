@@ -3,6 +3,7 @@ How to install
 ==============
 
 Before you can begin installation check that your system has ``curl`` library
+installed.
 
 Windows
 -------
@@ -33,7 +34,7 @@ Put on your console below command to install.::
 Now do you need configuration file. In your home directory create directory
 ``.beast`` and add text file named ``config``. ::
 
-  $ subl ~/.beast/config
+  $ EDITOR ~/.beast/config
 
 and add: ::
 

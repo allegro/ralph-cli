@@ -199,7 +199,6 @@ def export(arguments, settings):
         print
         for i in result_data:
             print i.encode('utf-8','ignore')
-
     else:
         widths = defaultdict(int)
         for row in of:
@@ -233,7 +232,6 @@ def export(arguments, settings):
             print "-" * max_width
             sys.stdout.write("|")
             for key in of:
-                #key = row.keys()[key_row]
                 fill = widths.get(key)
                 align = widths.get(key)
                 sys.stdout.write(

@@ -266,7 +266,7 @@ def multiget(row, key):
     return actual
 
 
-def high(string):
+def highlight(string):
     if sys.stdout.isatty() or sys.stdin.isatty():
         return string
     else:

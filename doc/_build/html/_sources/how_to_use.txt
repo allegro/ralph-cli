@@ -130,3 +130,13 @@ Export to file
 Beast can prepare data to export ``csv``, ``yaml`` or ``trim`` format.
 ::
   ~/beast export venture --csv > ~/ralph_ventures.csv
+
+If you use Windows, yours home directory path is: ::
+
+  c:\cygwin\home\user_name\
+
+You can also open file from console in yours text editor and save on preferred
+place. ::
+
+  cygstart.exe ~/ralph_ventuures.csv
+

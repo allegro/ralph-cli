@@ -3,14 +3,9 @@ ralph_beast
 
 Beast is convenient Ralph API commandline client.
 
-Doc:
-~~~~
+Docs
+----
 
-how to install_
+How to install https://github.com/ralph_beast/beast/blob/master/doc/install.rst
 
-.. _install: https://github.com/ralph_beast/beast/blob/master/doc/install.rst
-
-how to use_
-
-.. _use: https://github.com/ralph_beast/beast/blob/master/doc/how_to_use.rst
-
+How to use https://github.com/ralph_beast/beast/blob/master/doc/how_to_use.rst

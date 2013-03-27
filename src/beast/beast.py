@@ -6,7 +6,8 @@
 Documentation on https://github.com/allegro/ralph_beast/
 
 Usage:
- beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--yaml] [--trim] [--limit=limit]
+ beast export <resource> [--filter=filter_expression] [--fields=fields]
+ [--csv] [--yaml] [--trim] [--limit=limit]
  beast update <resource> <id> <fields> <fields_values>
  beast export
  beast inspect [--resource=resource]
@@ -174,7 +175,8 @@ def export(arguments, settings):
     csv_export = arguments.get('--csv')
     trim_columns = arguments.get('--trim')
     if not resource:
-        print "Resource not specified. Type beast inspect [resource] to inspect available fields."
+        print """Resource not specified. Type beast inspect [resource] to
+                                                inspect available fields."""
         return inspect(arguments, settings)
     data = get_resource(settings, resource, limit)
     result_data = []
@@ -228,7 +230,11 @@ def export(arguments, settings):
             align = widths.get(key)
             sys.stdout.write(
                 ' {: <{fill}.{align}}|'.format(
-                    key, fill=fill-4, align=align-4))
+                    key,
+                    fill=fill-4,
+                    align=align-4
+                )
+            )
         sys.stdout.write('\n')
         for row in result_data:
             print "-" * max_width
@@ -238,7 +244,11 @@ def export(arguments, settings):
                 align = widths.get(key)
                 sys.stdout.write(
                     ' {: <{fill}.{align}}|'.format(
-                        row[key].encode('utf-8','ignore'), fill=fill-4, align=align-4))
+                        unicode(row[key], 'utf-8'),
+                        fill=fill-4,
+                        align=align-4
+                    )
+                )
             sys.stdout.write('\n')
 
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Beast - ralph REST client.
+"""Beast is convenient Ralph API commandline client.
+
+Documentation on https://github.com/allegro/ralph_beast/
 
 Usage:
  beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--yaml] [--trim] [--limit=limit]
@@ -38,49 +40,56 @@ def get_session(settings):
     if not username or not api_key or not url:
         print("username, api_key and url in ~/.beast/config are required.")
         sys.exit(2)
-    s = requests.session(verify=False)
-    s = slumber.API(
+    session = requests.session(verify=False)
+    session = slumber.API(
         '%(url)s/api/v0.9/' % dict(url=url),
-        session=s,
+        session=session,
     )
-    return s
+    return session
 
 
 def put_resource(settings, resource, id, data):
     username = settings.get('username')
     api_key = settings.get('api_key')
-    s = get_session(settings)
+    session = get_session(settings)
     try:
-        data = getattr(s, resource)(id).put(
+        data = getattr(session, resource)(id).put(
             data=data,
             username=username,
             api_key=api_key
         )
-    except slumber.exceptions.HttpClientError as e:
-        print 'Error: ', e.content
+    except slumber.exceptions.HttpClientError as error:
+        print 'Error: ', error.content
     return data
 
 
 def get_resource(settings, resource, limit=None):
     username = settings.get('username')
     api_key = settings.get('api_key')
-    s = get_session(settings)
+    session = get_session(settings)
     if limit:
-        data = getattr(s, resource).get(limit=limit, username=username, api_key=api_key)
+        data = getattr(session, resource).get(
+            limit=limit,
+            username=username,
+            api_key=api_key
+        )
     else:
-        data = getattr(s, resource).get(limit=0, username=username, api_key=api_key)
+        data = getattr(session, resource).get(
+            limit=0,
+            username=username,
+            api_key=api_key
+        )
     return data
 
 
 def do_main(arguments):
     settings = dict()
-    f = os.path.expanduser("~/.beast/config")
+    config_file = os.path.expanduser("~/.beast/config")
     try:
-        execfile(f, settings)
+        execfile(config_file, settings)
     except IOError:
         print("Config file ~/.beast/config doesn't exist.")
         sys.exit(4)
-
     if arguments.get('inspect'):
         inspect(arguments, settings)
     elif arguments.get('export'):
@@ -94,7 +103,6 @@ def update(arguments, settings):
     id = arguments.get('<id>')
     fields = arguments.get('<fields>').split(',')
     fields_values = arguments.get('<fields_values>')
-
     for row in csv.reader([fields_values],
         quotechar='"', quoting=csv.QUOTE_MINIMAL):
         pass
@@ -116,7 +124,7 @@ def inspect(arguments, settings):
         data = get_resource(settings, resource)
         if data.get('objects'):
             first_item = data['objects'][0]
-            list_of_keys = [x for x in first_item.keys()]
+            list_of_keys = [key for key in first_item.keys()]
             print '\n'.join(sorted(list_of_keys))
 
 
@@ -144,10 +152,10 @@ def remove_links(row):
         row[field] = console_repr(row[field])
 
 
-def smallest_list_of(widths, of, max_width):
+def smallest_list_of(widths, output_fields, max_width):
     of_truncated = []
     current_width = 0
-    for key in of:
+    for key in output_fields:
         width = widths.get(key)
         if current_width + width > max_width:
             return of_truncated
@@ -158,44 +166,46 @@ def smallest_list_of(widths, of, max_width):
 
 
 def export(arguments, settings):
-    trim_columns = arguments.get('--trim')
     pp = pprint.PrettyPrinter(indent=4)
     resource = arguments.get('<resource>')
     limit = arguments.get('--limit')
     filter_expression = arguments.get('--filter')
     output_fields = arguments.get('--fields')
     csv_export = arguments.get('--csv')
+    trim_columns = arguments.get('--trim')
     if not resource:
         print "Resource not specified. Type beast inspect [resource] to inspect available fields."
         return inspect(arguments, settings)
     data = get_resource(settings, resource, limit)
     result_data = []
-    first = True
     if limit:
         print "Limited rows requested: %s" % limit
+
     for row in data['objects']:
-        if not first:
-            first = False
         try:
-            e = eval("%s" % (filter_expression or True))
-        except Exception as e:
-            print("Filter epression invalid: %s" % e)
+            code = eval("%s" % (filter_expression or True))
+        except Exception as error:
+            print("Filter epression invalid: %s" % error)
             sys.exit(5)
-        all_fields = row.keys()
-        of = output_fields.split(',') if output_fields else all_fields
-        if e:
+        of = output_fields.split(',') if output_fields else row.keys()
+        if code:
             if csv_export:
-                result_data.append(','.join([unicode(multiget(row, key)) for key in of]))
+                result_data.append(
+                    ','.join([unicode(multiget(row, key)) for key in of])
+                )
             else:
                 remove_links(row)
                 result_data.append(row)
+
     if csv_export:
         for row in of:
             sys.stdout.write(unicode(row, 'utf-8'))
             sys.stdout.write(",")
         print
-        for i in result_data:
-            print i.encode('utf-8','ignore')
+        for item in result_data:
+            print unicode(item, 'utf-8')
+
+
     else:
         widths = defaultdict(int)
         for row in of:
@@ -237,22 +247,21 @@ def multiget(row, key):
         print("Empty field error. Please check if all fields are given")
         sys.exit(1)
     actual = row
-    nested = key.split('.')
-    for n in nested:
+    for nested in key.split('.'):
         try:
-            actual = actual[n]
+            actual = actual[nested]
         except KeyError:
             print "Unknown field: %s" % key
             sys.exit(3)
     return actual
 
 
-def high(s):
+def high(string):
     if sys.stdout.isatty() or sys.stdin.isatty():
-        return s
+        return string
     else:
         return pygments.highlight(
-            s,
+            string,
             pygments.lexers.YamlLexer(),
             pygments.formatters.Terminal256Formatter()
         )

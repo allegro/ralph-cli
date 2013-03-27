@@ -21,7 +21,6 @@ import os
 import pprint
 import sys
 
-from docopt import docopt
 import pygments
 import pygments.formatters
 import pygments.lexers
@@ -29,6 +28,7 @@ import requests
 import slumber
 import csv
 
+from docopt import docopt
 from collections import defaultdict
 
 
@@ -194,11 +194,12 @@ def export(arguments, settings):
                 result_data.append(row)
     if csv_export:
         for row in of:
-            sys.stdout.write(row)
+            sys.stdout.write(unicode(row, 'utf-8'))
             sys.stdout.write(",")
         print
         for i in result_data:
-            print(i)
+            print i.encode('utf-8','ignore')
+
     else:
         widths = defaultdict(int)
         for row in of:
@@ -239,10 +240,6 @@ def export(arguments, settings):
                     ' {: <{fill}.{align}}|'.format(
                         row[key].encode('utf-8','ignore'), fill=fill-4, align=align-4))
             sys.stdout.write('\n')
-
-
-    #if result_data:
-    #    print high(yaml.safe_dump(result_data))
 
 
 def multiget(row, key):

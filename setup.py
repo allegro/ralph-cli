@@ -20,7 +20,7 @@ setup (
     version = release,
     author = 'Grupa Allegro Sp. z o.o. and Contributors',
     author_email = 'it-beast-dev@allegro.pl',
-    description = "Beast, ralph api client API",
+    description = "Beast, ralph API client API",
     long_description = long_description,
     url = 'http://beast.allegrogroup.com/',
     keywords = '',
@@ -42,7 +42,7 @@ setup (
     },
     classifiers = [
         'Development Status :: 4 - Beta',
-        'Framework :: Django',
+        'Framework :: ',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',

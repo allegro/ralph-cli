@@ -182,6 +182,13 @@ def export(arguments, settings):
     if limit:
         print "Limited rows requested: %s" % limit
 
+
+
+
+
+
+
+
     for row in data['objects']:
         try:
             code = eval("%s" % (filter_expression or True))
@@ -198,6 +205,9 @@ def export(arguments, settings):
                 remove_links(row)
                 result_data.append(row)
 
+
+
+
     if csv_export:
         for row in of:
             sys.stdout.write(unicode(row, 'utf-8'))
@@ -205,8 +215,6 @@ def export(arguments, settings):
         print
         for item in result_data:
             print unicode(item, 'utf-8')
-
-
     else:
         widths = defaultdict(int)
         for row in of:

@@ -32,7 +32,7 @@ import urlparse
 from collections import defaultdict
 from docopt import docopt
 
-class Api:
+class Api(object):
     def get_session(self, settings):
         url = settings.get('url')
         username = settings.get('username')
@@ -78,7 +78,7 @@ class Api:
         return getattr(session, resource).get(**dict(attrs_dict))
 
 
-class Content:
+class Content(object):
     def inspect(self, arguments, settings, resource=None):
         # TODO rzniecie scheme
         if not resource:

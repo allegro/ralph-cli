@@ -114,7 +114,7 @@ def inspect(arguments, settings):
     else:
         print "Available fields for resource: %s" % resource
         print "-" * 50
-        data = get_resource(settings, resource)
+        data = get_resource(settings, resource, limit=1)
         if data.get('objects'):
             first_item = data['objects'][0]
             list_of_keys = [x for x in first_item.keys()]

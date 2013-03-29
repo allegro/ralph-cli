@@ -84,12 +84,12 @@ class Content(object):
         if not resource:
             print "-" * 50
             data = Api().get_resource(settings, '')
-            list_of_resources = [x for x in data]
+            list_of_resources = [resource for resource in data]
             print '\n'.join(sorted(list_of_resources))
         else:
             print "Available fields for resource: %s" % resource
             print "-" * 50
-            data = Api().get_resource(settings, resource)
+            data = Api().get_resource(settings, resource, limit=1)
             if data.get('objects'):
                 first_item = data['objects'][0]
                 list_of_keys = [key for key in first_item.keys()]

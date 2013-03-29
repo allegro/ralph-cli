@@ -130,7 +130,7 @@ def console_repr(field):
     elif type(field) == type(False):
         field = 'x' if field else 'o'
     elif type(field) == type({}):
-        field = field['id']
+        field = unicode(field['id'])
     elif type(field) == type(None):
         field = ''
     elif type(field) == type([]):

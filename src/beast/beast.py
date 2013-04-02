@@ -97,7 +97,6 @@ class Content(object):
 
     def get_api_objects(self, data, python_filter, output_fields, csv_export):
         result_data = []
-
         if not 'objects' in data:
             return data, []
         for row in data['objects']:
@@ -220,6 +219,11 @@ class Content(object):
             max_width,
             widths,
         )
+        for row in of:
+            if not trim_columns:
+                widths[row] = len(row) + 4
+            else:
+                widths[row] = 5
         for row in result_data:
             print "-" * max_width
             sys.stdout.write("|")
@@ -237,7 +241,6 @@ class Content(object):
 
 
 def show(arguments, settings):
-    pp = pprint.PrettyPrinter(indent=4)
     max_width = 120
     widths = defaultdict(int)
     resource = arguments.get('<resource>', '')

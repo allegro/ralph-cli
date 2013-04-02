@@ -2,47 +2,42 @@
 # -*- coding: utf-8 -*-
 
 """Beast is convenient Ralph API commandline client.
-
 Documentation on https://github.com/allegro/ralph_beast/
+Example usage $ ~/beast show
 
 Usage:
  beast show
- beast show <resource> [--schema] [--filter=field_filter] [--pyhton-filter=python_filter] [--fields=fields] [--csv] [--trim] [--limit=limit]
+ beast show <resource> [--schema] [--fields=fields] [--filter-fields] [--filter=field_filter] [--pyhton-filter=python_filter] [--limit=limit] [--csv] [--trim] [--width=max_width]
  beast update <resource> <id> <fields> <fields_values>
  beast -h | --help
  beast --version
-
-Options:
-  -h --help     Show this screen.
-  --version     Show version.
 
 """
 
 import csv
 import os
-import pprint
-import pygments
-import pygments.formatters
-import pygments.lexers
 import requests
 import slumber
 import sys
+import time
 import urlparse
 
 from collections import defaultdict
 from docopt import docopt
 
+
 class Api(object):
     def get_session(self, settings):
         url = settings.get('url')
+        version = settings.get('version')
         username = settings.get('username')
         api_key = settings.get('api_key')
         if not username or not api_key or not url:
-            print("username, api_key and url in ~/.beast/config are required.")
+            print("username, api_key, url and version in ~/.beast/config are required.")
             sys.exit(2)
         session = requests.session(verify=False)
         session = slumber.API(
-            '%(url)s/api/v0.9/' % dict(url=url),
+            '%(url)s/api/%(version)s/' % dict(url=url, version=version),
             session=session,
         )
         return session
@@ -61,8 +56,7 @@ class Api(object):
             print 'Error: ', error.content
         return data
 
-    def get_resource(self, settings, resource, limit=None, filters=None,
-        python_filter=None):
+    def get_resource(self, settings, resource, limit=None, filters=None):
         session = self.get_session(settings)
         resource = '' if not resource else resource
         limit = 0 if not limit else limit
@@ -77,75 +71,33 @@ class Api(object):
         attrs_dict = dict(attrs)
         return getattr(session, resource).get(**dict(attrs_dict))
 
-
-class Content(object):
-    def inspect(self, arguments, settings, resource=None):
-        # TODO rzniecie scheme
+    def get_schema(self, settings, resource=None, filters=False):
         if not resource:
             print "-" * 50
-            data = Api().get_resource(settings, '')
+            data = self.get_resource(settings, '')
             list_of_resources = [resource for resource in data]
             print '\n'.join(sorted(list_of_resources))
         else:
-            print "Available fields for resource: %s" % resource
             print "-" * 50
-            data = Api().get_resource(settings, resource, limit=1)
-            if data.get('objects'):
-                first_item = data['objects'][0]
-                list_of_keys = [key for key in first_item.keys()]
-                print '\n'.join(sorted(list_of_keys))
+            schema = '%s/schema/' % resource
+            data = self.get_resource(settings, resource=schema, limit=1)
+            if not filters:
+                for field in data['fields']:
+                    print field
+            else:
+                for field in data['filtering'].keys():
+                    print field
 
-    def get_api_objects(self, data, python_filter, output_fields, csv_export):
-        result_data = []
+
+class Content(object):
+    def get_api_objects(self, data, output_fields):
         if not 'objects' in data:
             return data, []
+        content = []
         for row in data['objects']:
-            try:
-                code = eval("%s" % (python_filter or True))
-            except Exception as error:
-                print("Filter epression invalid: %s" % error)
-                sys.exit(5)
-            of = output_fields.split(',') if output_fields else row.keys()
-            if code:
-                if csv_export:
-                    result_data.append(
-                        ','.join([unicode(self.multiget(row, key)) for key in of])
-                    )
-                else:
-                    self.remove_links(row)
-                    result_data.append(row)
-        return result_data, of
-
-    def csv_format(self, header, content):
-        for row in header:
-            sys.stdout.write(row.encode('utf-8'))
-            sys.stdout.write(",")
-        print
-        for item in content:
-            print item.encode('utf-8')
-
-    def multiget(self, row, key):
-        if not key:
-            print("Empty field error. Please check if all fields are given")
-            sys.exit(1)
-        actual = row
-        for nested in key.split('.'):
-            try:
-                actual = actual[nested]
-            except KeyError:
-                print "Unknown field: %s" % key
-                sys.exit(3)
-        return actual
-
-    def highlight(self, string):
-        if sys.stdout.isatty() or sys.stdin.isatty():
-            return string
-        else:
-            return pygments.highlight(
-                string,
-                pygments.lexers.YamlLexer(),
-                pygments.formatters.Terminal256Formatter()
-            )
+            header = output_fields if output_fields else row.keys()
+            content.append(self.remove_links(row))
+        return header, content
 
     def console_repr(self, field):
         if type(field) == type(u''):
@@ -167,7 +119,9 @@ class Content(object):
 
     def remove_links(self, row):
         for field in row.keys():
-            row[field] = self.console_repr(row[field])
+            encode_field = field.encode('utf-8')
+            row[encode_field] = self.console_repr(row[encode_field])
+        return row
 
     def smallest_list_of(self, widths, output_fields, max_width):
         of_truncated = []
@@ -181,20 +135,40 @@ class Content(object):
             current_width += width
         return of_truncated
 
-    def show_header(self, of, trim_columns, result_data, output_fields,
-        max_width, widths):
+    def trim_colums(self, of, widths, trim_columns, result_data,
+                                                    output_fields, max_width):
+        # TODO: FIX ME!
         for row in of:
-            if not trim_columns:
-                widths[row] = len(row) + 4
-            else:
-                widths[row] = 5
-        for row in result_data:
-            for key in row.keys():
-                widths[key] = max(widths[key], len(row[key])+4)
-                all_fields = row.keys()
-                of = output_fields.split(',') if output_fields else all_fields
+            widths[row] = len(row) + 4 if not trim_columns else 5
+
+        import pdb; pdb.set_trace()
         if not output_fields:
             of = self.smallest_list_of(widths, of, max_width)
+        else:
+            for row in result_data:
+                for key in row.keys():
+                    widths[key] = max(widths[key], len(row[key])+4)
+                    all_fields = row.keys()
+                    of = output_fields if output_fields else all_fields
+        return of, widths
+
+    def python_filter(self, result_data, python_filter):
+        header, content = self.get_api_objects(data, output_fields)
+
+        return header, python_content
+
+
+class Writer(Content):
+    def write_header(self, of, result_data, trim_columns, output_fields,
+                                                            max_width, widths):
+        of, widths = self.trim_colums(
+            of,
+            widths,
+            trim_columns,
+            result_data,
+            output_fields,
+            max_width
+        )
         print "-" * max_width
         sys.stdout.write("|")
         for key in of:
@@ -209,21 +183,16 @@ class Content(object):
             )
         sys.stdout.write('\n')
 
-    def show_content(self, of, result_data, trim_columns, output_fields,
+    def write_rows(self, of, result_data, trim_columns, output_fields,
                                                             max_width, widths):
-        self.show_header(
+        of, widths = self.trim_colums(
             of,
+            widths,
             trim_columns,
             result_data,
             output_fields,
-            max_width,
-            widths,
+            max_width
         )
-        for row in of:
-            if not trim_columns:
-                widths[row] = len(row) + 4
-            else:
-                widths[row] = 5
         for row in result_data:
             print "-" * max_width
             sys.stdout.write("|")
@@ -239,52 +208,68 @@ class Content(object):
                 )
             sys.stdout.write('\n')
 
+    def csv(self, header, content):
+        # TODO: Fix coding in incoming data, fix split
+        print ','.join(field for field in header)
+        for fields in content:
+            print ','.join(field for key, field in fields.items())
+
+
 
 def show(arguments, settings):
-    max_width = 120
-    widths = defaultdict(int)
     resource = arguments.get('<resource>', '')
     limit = arguments.get('--limit')
-    schema = arguments.get('--schema')
-    filters = arguments.get('--filter')
     python_filter = arguments.get('--python-filter')
-    output_fields = arguments.get('--fields')
-    csv_export = arguments.get('--csv')
-    trim_columns = arguments.get('--trim')
+    fields = arguments.get('--fields')
+    out_fls = [field.strip() for field in fields.split(',')] if fields else None
+    max_width = arguments.get('--max_width') or 120
+
+    if not resource:
+        print "Ralph API, schema"
+        return Api().get_schema(settings, None)
+    elif arguments.get('--schema'):
+        print "Ralph API > %s, schema" % resource
+        return Api().get_schema(settings, resource)
+
+    if arguments.get('--filter-fields'):
+        print "available filter fileds"
+        return Api().get_schema(settings, resource, filters=True)
+
     data = Api().get_resource(
         settings,
         resource,
         limit,
-        filters,
-        python_filter,
+        arguments.get('--filter'),
     )
-    result_data, of = Content().get_api_objects(
-        data,
-        python_filter,
-        output_fields,
-        csv_export,
-    )
-    if not resource:
-        print "Ralph API schema"
-        return Content().inspect(arguments, settings)
-    if schema:
-        # Rżnąć schema
-        print "Ralph API schema for %s" % resource
-        return Content().inspect(arguments, settings, resource=resource)
-    if limit:
-        print "Limited rows requested: %s" % limit
-    # Return format (default: table)
-    if csv_export:
-        return Content().csv_format(header=of, content=result_data)
+    if python_filter:
+        print "Python filter: %s" % python_filter
+        header, content = Content().python_filter(data, python_filter)
     else:
-        return Content().show_content(
-            of,
-            result_data,
-            trim_columns,
-            output_fields,
-            max_width,
-            widths,
-        )
+        print "Ralph API > %s" % resource
+        header, content = Content().get_api_objects(data, out_fls)
+
+    if limit:
+        print "Limit: %s" % limit
+
+    if arguments.get('--csv'):
+        return Writer().csv(header, content)
+
+    Writer().write_header(
+        header,
+        content,
+        arguments.get('--trim'),
+        out_fls,
+        max_width,
+        defaultdict(int),
+    )
+    Writer().write_rows(
+        header,
+        content,
+        arguments.get('--trim'),
+        out_fls,
+        max_width,
+        defaultdict(int),
+    )
 
 
 def update(arguments, settings):
@@ -296,7 +281,7 @@ def update(arguments, settings):
         quotechar='"', quoting=csv.QUOTE_MINIMAL):
         pass
     data = dict(zip(fields, row))
-    Api.put_resource(settings, resource, id, data)
+    Api().put_resource(settings, resource, id, data)
 
 
 def do_main(arguments):
@@ -314,8 +299,10 @@ def do_main(arguments):
 
 
 def main():
+    stopwatch_start = time.time()
     arguments = docopt(__doc__, version='0.1')
     do_main(arguments)
+    print 'nRuntime: %s sec' % round(time.time()-stopwatch_start, 2)
 
 
 if __name__ == '__main__':

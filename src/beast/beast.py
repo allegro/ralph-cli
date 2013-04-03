@@ -7,7 +7,7 @@ Example usage $ ~/beast show
 
 Usage:
  beast show
- beast show <resource> [--schema] [--fields=fields] [--filter-fields] [--filter=field_filter] [--limit=limit] [--csv] [--trim] [--width=max_width]
+ beast show <resource> [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--limit=limit] [--csv] [--trim] [--width=max_width]
  beast update <resource> <id> <fields> <fields_values>
  beast -h | --help
  beast --version
@@ -15,12 +15,17 @@ Usage:
 """
 
 import csv
+import fcntl
 import os
 import requests
 import slumber
+import struct
 import sys
 import time
+import termios
 import urlparse
+
+
 
 from collections import defaultdict
 from docopt import docopt
@@ -53,7 +58,7 @@ class Api(object):
                 api_key=api_key
             )
         except slumber.exceptions.HttpClientError as error:
-            print 'Error: ', error.content
+            print('Error: ', error.content)
         return data
 
     def get_resource(self, settings, resource, limit=None, filters=None):
@@ -73,20 +78,20 @@ class Api(object):
 
     def get_schema(self, settings, resource=None, filters=False):
         if not resource:
-            print "-" * 50
+            print("-" * 50)
             data = self.get_resource(settings, '')
             list_of_resources = [resource for resource in data]
-            print '\n'.join(sorted(list_of_resources))
+            print('\n'.join(sorted(list_of_resources)))
         else:
-            print "-" * 50
+            print("-" * 50)
             schema = '%s/schema/' % resource
-            data = self.get_resource(settings, resource=schema, limit=1)
-            if not filters:
-                for field in data['fields']:
-                    print field
-            else:
-                for field in data['filtering'].keys():
-                    print field
+            data = self.get_resource(settings, resource=schema)
+
+            for field in data['fields']:
+                if field in data['filtering'].keys():
+                    print('%s*' % field)
+                else:
+                    print(field)
 
 
 class Content(object):
@@ -137,7 +142,7 @@ class Content(object):
 
     def trim_colums(self, of, widths, trim_columns, result_data,
                                                     output_fields, max_width):
-        # TODO: FIX ME!
+        #FIXME: it doesn't work
         for row in of:
             widths[row] = len(row) + 4 if not trim_columns else 5
 
@@ -151,6 +156,10 @@ class Content(object):
                     of = output_fields if output_fields else all_fields
         return of, widths
 
+    def get_terminal_size(self):
+        data = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, '1234')
+        return struct.unpack('hh', data)
+
 
 class Writer(Content):
     def write_header(self, of, result_data, trim_columns, output_fields,
@@ -161,9 +170,9 @@ class Writer(Content):
             trim_columns,
             result_data,
             output_fields,
-            max_width
+            max_width,
         )
-        print "-" * max_width
+        print("-" * max_width)
         sys.stdout.write("|")
         for key in of:
             fill = widths.get(key)
@@ -185,10 +194,10 @@ class Writer(Content):
             trim_columns,
             result_data,
             output_fields,
-            max_width
+            max_width,
         )
         for row in result_data:
-            print "-" * max_width
+            print("-" * max_width)
             sys.stdout.write("|")
             for key in of:
                 fill = widths.get(key)
@@ -203,10 +212,11 @@ class Writer(Content):
             sys.stdout.write('\n')
 
     def csv(self, header, content):
-        print ';'.join(field for field in header)
+        print(';'.join(field for field in header))
         for fields in content:
-            print ';'.join(
-                field.encode('utf-8') for key, field in fields.items()
+            print(';'.join(
+                    field.encode('utf-8') for key, field in fields.items()
+                )
             )
 
 
@@ -215,18 +225,15 @@ def show(arguments, settings):
     limit = arguments.get('--limit')
     fields = arguments.get('--fields')
     out_fls = [field.strip() for field in fields.split(',')] if fields else None
-    max_width = int(arguments.get('--width') or 120)
+    rows, columns = Content().get_terminal_size()
+    max_width = int(arguments.get('--width') or columns)
 
     if not resource:
-        print "Ralph API, schema"
+        print("Ralph API, schema")
         return Api().get_schema(settings, None)
     elif arguments.get('--schema'):
-        print "Ralph API > %s, schema" % resource
+        print("Ralph API > %s, schema" % resource)
         return Api().get_schema(settings, resource)
-
-    if arguments.get('--filter-fields'):
-        print "Ralph API > %s, available filter fileds" % resource
-        return Api().get_schema(settings, resource, filters=True)
 
     data = Api().get_resource(
         settings,
@@ -235,11 +242,11 @@ def show(arguments, settings):
         arguments.get('--filter'),
     )
 
-    print "Ralph API > %s" % resource
+    print("Ralph API > %s" % resource)
     header, content = Content().get_api_objects(data, out_fls)
 
     if limit:
-        print "Limit: %s" % limit
+        print("Limit: %s" % limit)
 
     if arguments.get('--csv'):
         return Writer().csv(header, content)
@@ -275,6 +282,8 @@ def update(arguments, settings):
 
 
 def do_main(arguments):
+    if arguments.get('--debug'):
+        stopwatch_start = time.time()
     settings = dict()
     config_file = os.path.expanduser("~/.beast/config")
     try:
@@ -287,12 +296,13 @@ def do_main(arguments):
     elif arguments.get('update'):
         update(arguments, settings)
 
+    if arguments.get('--debug'):
+        print('\nTotal time: %s sec' % round(time.time()-stopwatch_start, 2))
+
 
 def main():
-    stopwatch_start = time.time()
     arguments = docopt(__doc__, version='0.1')
     do_main(arguments)
-    print '\nRuntime: %s sec' % round(time.time()-stopwatch_start, 2)
 
 
 if __name__ == '__main__':

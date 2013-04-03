@@ -7,7 +7,7 @@ Example usage $ ~/beast show
 
 Usage:
  beast show
- beast show <resource> [--schema] [--fields=fields] [--filter-fields] [--filter=field_filter] [--pyhton-filter=python_filter] [--limit=limit] [--csv] [--trim] [--width=max_width]
+ beast show <resource> [--schema] [--fields=fields] [--filter-fields] [--filter=field_filter] [--limit=limit] [--csv] [--trim] [--width=max_width]
  beast update <resource> <id> <fields> <fields_values>
  beast -h | --help
  beast --version
@@ -141,7 +141,6 @@ class Content(object):
         for row in of:
             widths[row] = len(row) + 4 if not trim_columns else 5
 
-        import pdb; pdb.set_trace()
         if not output_fields:
             of = self.smallest_list_of(widths, of, max_width)
         else:
@@ -151,11 +150,6 @@ class Content(object):
                     all_fields = row.keys()
                     of = output_fields if output_fields else all_fields
         return of, widths
-
-    def python_filter(self, result_data, python_filter):
-        header, content = self.get_api_objects(data, output_fields)
-
-        return header, python_content
 
 
 class Writer(Content):
@@ -209,20 +203,20 @@ class Writer(Content):
             sys.stdout.write('\n')
 
     def csv(self, header, content):
-        # TODO: Fix coding in incoming data, fix split
-        print ','.join(field for field in header)
+        print ';'.join(field for field in header)
         for fields in content:
-            print ','.join(field for key, field in fields.items())
-
+            print ';'.join(
+                field.encode('utf-8') for key, field in fields.items()
+            )
 
 
 def show(arguments, settings):
     resource = arguments.get('<resource>', '')
     limit = arguments.get('--limit')
-    python_filter = arguments.get('--python-filter')
+    python_filter = arguments.get('--python_filter')
     fields = arguments.get('--fields')
     out_fls = [field.strip() for field in fields.split(',')] if fields else None
-    max_width = arguments.get('--max_width') or 120
+    max_width = int(arguments.get('--width') or 120)
 
     if not resource:
         print "Ralph API, schema"
@@ -232,7 +226,7 @@ def show(arguments, settings):
         return Api().get_schema(settings, resource)
 
     if arguments.get('--filter-fields'):
-        print "available filter fileds"
+        print "Ralph API > %s, available filter fileds" % resource
         return Api().get_schema(settings, resource, filters=True)
 
     data = Api().get_resource(
@@ -302,7 +296,7 @@ def main():
     stopwatch_start = time.time()
     arguments = docopt(__doc__, version='0.1')
     do_main(arguments)
-    print 'nRuntime: %s sec' % round(time.time()-stopwatch_start, 2)
+    print '\nRuntime: %s sec' % round(time.time()-stopwatch_start, 2)
 
 
 if __name__ == '__main__':

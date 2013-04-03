@@ -234,12 +234,9 @@ def show(arguments, settings):
         limit,
         arguments.get('--filter'),
     )
-    if python_filter:
-        print "Python filter: %s" % python_filter
-        header, content = Content().python_filter(data, python_filter)
-    else:
-        print "Ralph API > %s" % resource
-        header, content = Content().get_api_objects(data, out_fls)
+
+    print "Ralph API > %s" % resource
+    header, content = Content().get_api_objects(data, out_fls)
 
     if limit:
         print "Limit: %s" % limit

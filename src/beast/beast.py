@@ -213,7 +213,6 @@ class Writer(Content):
 def show(arguments, settings):
     resource = arguments.get('<resource>', '')
     limit = arguments.get('--limit')
-    python_filter = arguments.get('--python_filter')
     fields = arguments.get('--fields')
     out_fls = [field.strip() for field in fields.split(',')] if fields else None
     max_width = int(arguments.get('--width') or 120)

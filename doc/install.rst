@@ -29,7 +29,12 @@ Linux and MacOS
 
 Put on your console below command to install.::
 
+  $ pip install ralph-beast
+
+or:
+
   $ curl https://raw.github.com/allegro/ralph_beast/master/install.sh | bash -
+
 
 Now do you need configuration file. In your home directory create directory
 ``.beast`` and add text file named ``config``. ::

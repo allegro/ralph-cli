@@ -137,7 +137,7 @@ Use to better trim data::
 Width
 ~~~~~
 
-Cut table for definite characters::
+Limit table width to the specified number of characters::
 
   ~/beast show venture --width=100
 

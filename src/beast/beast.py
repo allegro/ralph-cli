@@ -39,7 +39,8 @@ class Api(object):
         username = settings.get('username')
         api_key = settings.get('api_key')
         if not username or not api_key or not url:
-            print("username, api_key, url and version in ~/.beast/config are required.")
+            print("username, api_key, url and version in ~/.beast/config are "
+                "required.")
             sys.exit(2)
         session = requests.session(verify=False)
         session = slumber.API(
@@ -118,7 +119,9 @@ class Content(object):
         elif type(field) == type(None):
             field = ''
         elif type(field) == type([]):
-            field = ','.join([self.console_repr(subfield) for subfield in field])
+            field = ','.join(
+                [self.console_repr(subfield) for subfield in field]
+            )
         else:
             field = unicode(field)
         return field
@@ -142,7 +145,7 @@ class Content(object):
         return of_truncated
 
     def trim_colums(self, of, widths, trim_columns, result_data,
-                                                    output_fields, max_width):
+        output_fields, max_width):
         #FIXME: it doesn't work
         for row in of:
             widths[row] = len(row) + 4 if not trim_columns else 5
@@ -159,13 +162,15 @@ class Content(object):
         return of, widths
 
     def get_terminal_size(self):
-        data = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, '1234')
-        return struct.unpack('hh', data)
+        if sys.stdout.isatty():
+            data = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, '1234')
+            return struct.unpack('hh', data)
+        return 60, 120
 
 
 class Writer(Content):
     def write_header(self, of, result_data, trim_columns, output_fields,
-                                                            max_width, widths):
+        max_width, widths):
         of, widths = self.trim_colums(
             of,
             widths,
@@ -189,7 +194,7 @@ class Writer(Content):
         sys.stdout.write('\n')
 
     def write_rows(self, of, result_data, trim_columns, output_fields,
-                                                            max_width, widths):
+        max_width, widths):
         of, widths = self.trim_colums(
             of,
             widths,
@@ -216,7 +221,7 @@ class Writer(Content):
 
 class WriterCSV(object):
     def __init__(self, f=cStringIO.StringIO(), dialect=csv.excel,
-                                                    encoding="utf-8", **kwds):
+        encoding="utf-8", **kwds):
         self.queue = cStringIO.StringIO()
         self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
         self.stream = f
@@ -243,11 +248,10 @@ def show(arguments, settings):
     resource = arguments.get('<resource>', '')
     limit = arguments.get('--limit')
     fields = arguments.get('--fields')
-    out_fls = [field.strip() for field in fields.split(',')] if fields else None
-    try:
-        rows, columns = Content().get_terminal_size()
-    except IOError:
-        columns = 120
+    out_fls = [
+        field.strip() for field in fields.split(',')
+    ] if fields else None
+    rows, columns = Content().get_terminal_size()
     max_width = int(arguments.get('--width') or columns)
 
     if not resource:

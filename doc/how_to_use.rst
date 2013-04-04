@@ -12,13 +12,13 @@ otherwise...
 List all available resources
 ----------------------------
 
-If you want to preview all api resources: ::
+If you want to preview all API resources: ::
 
-  $ ~/beast inspect
+  $ ~/beast show
 
 Output: ::
 
-  Available resources:
+  Ralph API, schema:
   --------------------------------------------------
   bladeserver
   businessline
@@ -30,58 +30,60 @@ Output: ::
 
 You can also list all the resource fields: ::
 
-  $ ~/beast inspect --resource=venture
+  $ ~/beast show venture --schema
 
 Output: ::
 
-  Available fields for resource: venture
+  Ralph API > venture, schema
   --------------------------------------------------
+  name*
   cache_version
   created
-  department
-  devices
-  id
-  is_infrastructure
+  symbol*
   modified
-  name
-  path
-  resource_uri
+  devices
   roles
-  show_in_ralph
-  symbol
+  show_in_ralph*
+  department*
+  path
+  is_infrastructure
+  id*
+  resource_uri
+
+If field name has ``*``, that you can execute filter on this filed
 
 
 Show details of the selected resource
 -------------------------------------
 ::
 
-  $ ~/beast export venture
+  $ ~/beast show venture
 
 Output: ::
 
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
   | name      | cache_version| created   | symbol    | modified  |
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
   | Venture1  | 2            | 2012-06-13| venture1  | 2012-06-14|
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
   | Venture2  | 5            | 2012-01-23| venture2  | 2012-06-14|
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
   | Venture3  | 8            | 2011-10-12| venture3  | 2012-10-31|
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
 
 Filter
 ~~~~~~
 
-If you need to see filtered data you can use Python::
+If you need to see filtered data use: ::
 
-  $ ~/beast export venture --filter="row.get('symbol') == 'venture2'"
+  $ ~/beast show venture --filter="symbol=venture2&modified=2012-06-14"
 
 Output: ::
 
-  ------------------------------------------------------------------------------------------------------------------------
+  -----------------------------------------------------------------------------------------------------
   | name   | cache_version| created   | symbol | modified  | devices| roles| show_in_ralph| department|
-  ------------------------------------------------------------------------------------------------------------------------
-  | Venture2| 4            | 2012-01-23| venture2 | 2012-06-14||        |      | x            | 2         |
+  -----------------------------------------------------------------------------------------------------
+  | Venture2| 4           | 2012-01-23| venture2 | 2012-06-14||     |      | x            | 2         |
 
 
 
@@ -91,20 +93,19 @@ Fields
 If you need to filter data, and no builtin API filter is available, you can use
 additional filtering by ordinar python expressions using ``row`` dict variable ::
 
-  $ ~/beast export venture --fields=name,symbol
+  $ ~/beast show venture --fields="name, symbol"
 
 Output: ::
 
-  ------------------------------------------------------------------------------------------------------------------------
+  -------------------------
   | name      | symbol    |
-  ------------------------------------------------------------------------------------------------------------------------
+  -------------------------
   | Venture1  | venture1  |
-  ------------------------------------------------------------------------------------------------------------------------
+  -------------------------
   | Venture2  | venture2  |
-  ------------------------------------------------------------------------------------------------------------------------
+  -------------------------
   | Venture3  | venture2  |
-  ------------------------------------------------------------------------------------------------------------------------
-
+  -------------------------
 
 
 
@@ -113,24 +114,50 @@ Limit
 
 Specifies the number of results::
 
-  ~/beast export venture --limit=1
+  ~/beast show venture --limit=1
 
 Output: ::
 
   Limited rows requested: 1
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
   | name      | cache_version| created   | symbol    | modified  |
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
   | Venture1  | 2            | 2012-06-13| venture1  | 2012-06-14|
-  ------------------------------------------------------------------------------------------------------------------------
+  ----------------------------------------------------------------
+
+
+Trim
+~~~~
+
+Use to better trim data::
+
+  ~/beast show venture --trim
+
+
+Width
+~~~~~
+
+Cut table for definite characters::
+
+  ~/beast show venture --width=100
+
+
+Debug
+~~~~~
+
+Shows request time::
+
+  ~/beast show venture --debug
 
 
 Export to the file
 ~~~~~~~~~~~~~~~~~~
 
-Beast can prepare data to export ``csv``, ``yaml`` or ``trim`` format.
+Beast can prepare data to export ``csv`` or ``trim`` format.
 ::
   ~/beast export venture --csv > ~/ralph_ventures.csv
+
+CSV file is encoding to ``Unicode(UTF-8)`` and separated by ``comma``.::
 
 If you use Windows, yours home directory path is: ::
 

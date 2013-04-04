@@ -33,7 +33,7 @@ from docopt import docopt
 
 
 class Api(object):
-    def get_session(self, settings):
+    def get_session(self, settings,):
         url = settings.get('url')
         version = settings.get('version')
         username = settings.get('username')
@@ -49,7 +49,7 @@ class Api(object):
         )
         return session
 
-    def put_resource(self, settings, resource, id, data):
+    def put_resource(self, settings, resource, id, data,):
         session = self.get_session(settings)
         username = settings.get('username')
         api_key = settings.get('api_key')
@@ -63,7 +63,7 @@ class Api(object):
             print('Error: ', error.content)
         return data
 
-    def get_resource(self, settings, resource, limit=None, filters=None):
+    def get_resource(self, settings, resource, limit=None, filters=None,):
         session = self.get_session(settings)
         resource = '' if not resource else resource
         limit = 0 if not limit else limit
@@ -78,11 +78,11 @@ class Api(object):
         attrs_dict = dict(attrs)
         return getattr(session, resource).get(**dict(attrs_dict))
 
-    def get_schema(self, settings, resource=None, filters=False):
+    def get_schema(self, settings, resource=None, filters=False,):
         if not resource:
             print("-" * 50)
             data = self.get_resource(settings, '')
-            list_of_resources = [resource for resource in data]
+            list_of_resources = [api_resource for api_resource in data]
             print('\n'.join(sorted(list_of_resources)))
         else:
             print("-" * 50)
@@ -97,7 +97,7 @@ class Api(object):
 
 
 class Content(object):
-    def get_api_objects(self, data, output_fields):
+    def get_api_objects(self, data, output_fields,):
         if not 'objects' in data:
             return data, []
         content = []
@@ -106,7 +106,7 @@ class Content(object):
             content.append(self.remove_links(row))
         return header, content
 
-    def console_repr(self, field):
+    def console_repr(self, field,):
         if type(field) == type(u''):
             if '/api/v0.9/' in field:
                 field = unicode(field.replace('/api/v0.9/',''))
@@ -126,13 +126,13 @@ class Content(object):
             field = unicode(field)
         return field
 
-    def remove_links(self, row):
+    def remove_links(self, row,):
         for field in row.keys():
             encode_field = field.encode('utf-8')
             row[encode_field] = self.console_repr(row[encode_field])
         return row
 
-    def smallest_list_of(self, widths, output_fields, max_width):
+    def smallest_list_of(self, widths, output_fields, max_width,):
         of_truncated = []
         current_width = 0
         for key in output_fields:
@@ -145,7 +145,7 @@ class Content(object):
         return of_truncated
 
     def trim_colums(self, of, widths, trim_columns, result_data,
-        output_fields, max_width):
+        output_fields, max_width,):
         #FIXME: it doesn't work
         for row in of:
             widths[row] = len(row) + 4 if not trim_columns else 5
@@ -170,7 +170,7 @@ class Content(object):
 
 class Writer(Content):
     def write_header(self, of, result_data, trim_columns, output_fields,
-        max_width, widths):
+        max_width, widths,):
         of, widths = self.trim_colums(
             of,
             widths,
@@ -194,7 +194,7 @@ class Writer(Content):
         sys.stdout.write('\n')
 
     def write_rows(self, of, result_data, trim_columns, output_fields,
-        max_width, widths):
+        max_width, widths,):
         of, widths = self.trim_colums(
             of,
             widths,
@@ -227,7 +227,7 @@ class WriterCSV(object):
         self.stream = f
         self.encoder = codecs.getincrementalencoder(encoding)()
 
-    def writerow(self, row):
+    def writerow(self, row,):
         self.writer.writerow([item.encode("utf-8") for item in row])
         data = self.queue.getvalue()
         data = data.decode("utf-8")
@@ -236,7 +236,7 @@ class WriterCSV(object):
         self.queue.truncate(0)
         return data
 
-    def write(self, header, content):
+    def write(self, header, content,):
         sys.stdout.write(self.writerow(header))
         for row in content:
             sys.stdout.write(self.writerow(
@@ -244,7 +244,7 @@ class WriterCSV(object):
             )
 
 
-def show(arguments, settings):
+def show(arguments, settings,):
     resource = arguments.get('<resource>', '')
     limit = arguments.get('--limit')
     fields = arguments.get('--fields')
@@ -295,7 +295,7 @@ def show(arguments, settings):
     )
 
 
-def update(arguments, settings):
+def update(arguments, settings,):
     resource = arguments.get('<resource>')
     id = arguments.get('<id>')
     fields = arguments.get('<fields>').split(',')
@@ -307,7 +307,7 @@ def update(arguments, settings):
     Api().put_resource(settings, resource, id, data)
 
 
-def do_main(arguments):
+def do_main(arguments,):
     if arguments.get('--debug'):
         stopwatch_start = time.time()
     settings = dict()

@@ -46,3 +46,4 @@ and add: ::
   username="jan.kowalski"
   api_key="478457f9f32323201ebde8ef79cd9d3a028ced56747"
   url="https://ralph-url.com"
+  version="v0.9"

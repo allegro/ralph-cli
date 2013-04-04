@@ -14,6 +14,8 @@ Usage:
 
 """
 
+import codecs
+import cStringIO
 import csv
 import fcntl
 import os
@@ -24,7 +26,6 @@ import sys
 import time
 import termios
 import urlparse
-
 
 
 from collections import defaultdict
@@ -147,6 +148,7 @@ class Content(object):
             widths[row] = len(row) + 4 if not trim_columns else 5
 
         if not output_fields:
+            # FIXME: uses name, barcode or any major field - whitelist?
             of = self.smallest_list_of(widths, of, max_width)
         else:
             for row in result_data:
@@ -211,12 +213,29 @@ class Writer(Content):
                 )
             sys.stdout.write('\n')
 
-    def csv(self, header, content):
-        print(';'.join(field for field in header))
-        for fields in content:
-            print(';'.join(
-                    field.encode('utf-8') for key, field in fields.items()
-                )
+
+class WriterCSV(object):
+    def __init__(self, f=cStringIO.StringIO(), dialect=csv.excel,
+                                                    encoding="utf-8", **kwds):
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row):
+        self.writer.writerow([item.encode("utf-8") for item in row])
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        data = self.encoder.encode(data)
+        self.stream.write(data)
+        self.queue.truncate(0)
+        return data
+
+    def write(self, header, content):
+        sys.stdout.write(self.writerow(header))
+        for row in content:
+            sys.stdout.write(self.writerow(
+                item for key, item in row.items())
             )
 
 
@@ -225,7 +244,10 @@ def show(arguments, settings):
     limit = arguments.get('--limit')
     fields = arguments.get('--fields')
     out_fls = [field.strip() for field in fields.split(',')] if fields else None
-    rows, columns = Content().get_terminal_size()
+    try:
+        rows, columns = Content().get_terminal_size()
+    except IOError:
+        columns = 120
     max_width = int(arguments.get('--width') or columns)
 
     if not resource:
@@ -249,7 +271,7 @@ def show(arguments, settings):
         print("Limit: %s" % limit)
 
     if arguments.get('--csv'):
-        return Writer().csv(header, content)
+        return WriterCSV().write(header, content)
 
     Writer().write_header(
         header,

@@ -6,4 +6,4 @@ How to install:
   
 How to use:
 
-  https://github.com/allegro/ralph_beast/blob/master/doc/how_to_use.rst
+  https://github.com/allegro/ralph_beast/blob/master/doc/howto.rst

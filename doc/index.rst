@@ -12,7 +12,7 @@ Contents:
    :maxdepth: 2
 
    install.rst
-   how_to_use.rst
+   howto.rst
 
 
 

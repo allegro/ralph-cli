@@ -3,6 +3,8 @@
 import os
 import sys
 from setuptools import setup, find_packages
+from distutils.core import setup
+import py2exe
 
 assert sys.version_info >= (2, 7), "Python 2.7+ required."
 
@@ -30,16 +32,38 @@ setup (
     include_package_data = True,
     package_dir = {'':'src'},
     zip_safe = False, # because templates are loaded from file path
+    console=['src/beast/beast.py'],
     install_requires = [
-	'requests==0.14.2',
+  'requests==0.14.2',
         'slumber',
-	'pygments','docopt','pyyaml'
+    'pygments','docopt','pyyaml'
     ],
     entry_points={
         'console_scripts': [
-		'beast = beast.beast:main',
+        'beast = beast.beast:main',
         ],
     },
+    options = {
+        'py2exe': {
+            'bundle_files': 1,
+            'optimize': 2,
+            'packages': 'beast',
+            'compressed': True,
+            "dll_excludes": ["mfc90.dll"],
+            'excludes': [
+                'doctest',
+                'pdb',
+                'unittest',
+                'difflib',
+                'inspect',
+                'pyreadline',
+                'optparse',
+                'pickle',
+                'email',
+            ]
+        },
+    },
+    zipfile = None,
     classifiers = [
         'Development Status :: 4 - Beta',
         'Framework :: ',

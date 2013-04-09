@@ -1,18 +1,9 @@
-To install just type:
+Beast is convenient Ralph API commandline client.
 
-  curl https://raw.github.com/vi4m/beast/master/install.sh | bash -
+How to install:
 
+  https://github.com/allegro/ralph_beast/blob/master/doc/install.rst
+  
+How to use:
 
-You need to create ~/.beast/config file like this:
-
-```python
-username="ralph_username"                                                                                       
-api_key="478457f9f32323201ebde8ef79cd9d3a028ced56747"
-url="https://ralph.url.com"
-```
-That's it.
-
-Type `~/beast export dev` 
-
-to show all ralph devices.
-
+  https://github.com/allegro/ralph_beast/blob/master/doc/howto.rst

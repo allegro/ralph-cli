@@ -1,280 +1,369 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Beast - ralph REST client.
+"""Beast is convenient Ralph API commandline client.
+Documentation on https://github.com/allegro/ralph_beast/
+Example usage $ ~/beast show
 
 Usage:
- beast export <resource> [--filter=filter_expression] [--fields=fields] [--csv] [--yaml] [--trim] [--limit=limit]
+ beast show
+ beast show <resource> [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--limit=limit] [--csv] [--trim] [--width=max_width]
  beast update <resource> <id> <fields> <fields_values>
- beast export
- beast inspect [--resource=resource]
  beast -h | --help
  beast --version
 
-Options:
-  -h --help     Show this screen.
-  --version     Show version.
-
 """
 
-import os
-import pprint
-import sys
+import platform
+PLATFORM = platform.system();
+if not PLATFORM == 'Windows':
+    import fcntl #pdcurses
+    import termios
 
-from docopt import docopt
-import pygments
-import pygments.formatters
-import pygments.lexers
+import codecs
+import cStringIO
+import csv
+import errno
+import os
+import platform
 import requests
 import slumber
-import csv
+import struct
+import sys
+import time
+import urlparse
 
 from collections import defaultdict
+from docopt import docopt
 
 
-def get_session(settings):
-    username = settings.get('username')
-    api_key = settings.get('api_key')
-    url = settings.get('url')
-    if not username or not api_key or not url:
-        print("username, api_key and url in ~/.beast/config are required.")
-        sys.exit(2)
-    s = requests.session(verify=False)
-    s = slumber.API(
-        '%(url)s/api/v0.9/' % dict(url=url),
-        session=s,
-    )
-    return s
 
 
-def put_resource(settings, resource, id, data):
-    username = settings.get('username')
-    api_key = settings.get('api_key')
-    s = get_session(settings)
-    try:
-        data = getattr(s, resource)(id).put(
-            data=data,
-            username=username,
-            api_key=api_key
+class Api(object):
+    def get_session(self, settings,):
+        url = settings.get('url')
+        version = settings.get('version')
+        username = settings.get('username')
+        api_key = settings.get('api_key')
+        if not username or not api_key or not url:
+            print("username, api_key, url and version in ~/.beast/config are "
+                "required.")
+            sys.exit(2)
+        session = requests.session(verify=False)
+        session = slumber.API(
+            '%(url)s/api/%(version)s/' % dict(url=url, version=version),
+            session=session,
         )
-    except slumber.exceptions.HttpClientError as e:
-        print 'Error: ', e.content
-    return data
+        return session
 
-
-def get_resource(settings, resource, limit=None):
-    username = settings.get('username')
-    api_key = settings.get('api_key')
-    s = get_session(settings)
-    if limit:
-        data = getattr(s, resource).get(limit=limit, username=username, api_key=api_key)
-    else:
-        data = getattr(s, resource).get(limit=0, username=username, api_key=api_key)
-    return data
-
-
-def do_main(arguments):
-    settings = dict()
-    f = os.path.expanduser("~/.beast/config")
-    try:
-        execfile(f, settings)
-    except IOError:
-        print("Config file ~/.beast/config doesn't exist.")
-        sys.exit(4)
-
-    if arguments.get('inspect'):
-        inspect(arguments, settings)
-    elif arguments.get('export'):
-        export(arguments, settings)
-    elif arguments.get('update'):
-        update(arguments, settings)
-
-
-def update(arguments, settings):
-    resource = arguments.get('<resource>')
-    id = arguments.get('<id>')
-    fields = arguments.get('<fields>').split(',')
-    fields_values = arguments.get('<fields_values>')
-
-    for row in csv.reader([fields_values],
-        quotechar='"', quoting=csv.QUOTE_MINIMAL):
-        pass
-    data = dict(zip(fields, row))
-    put_resource(settings, resource, id, data)
-
-
-def inspect(arguments, settings):
-    resource = arguments.get('--resource')
-    if not resource:
-        print "Available resources:"
-        print "-" * 50
-        data = get_resource(settings, '')
-        list_of_resources = [x for x in data]
-        print '\n'.join(sorted(list_of_resources))
-    else:
-        print "Available fields for resource: %s" % resource
-        print "-" * 50
-        data = get_resource(settings, resource, limit=1)
-        if data.get('objects'):
-            first_item = data['objects'][0]
-            list_of_keys = [x for x in first_item.keys()]
-            print '\n'.join(sorted(list_of_keys))
-
-
-def console_repr(field):
-    if type(field) == type(u''):
-        if '/api/v0.9/' in field:
-            field = unicode(field.replace('/api/v0.9/',''))
-        else:
-            field = unicode(field[:10])
-    elif type(field) == type(False):
-        field = 'x' if field else 'o'
-    elif type(field) == type({}):
-        field = unicode(field['id'])
-    elif type(field) == type(None):
-        field = ''
-    elif type(field) == type([]):
-        field = ','.join([console_repr(subfield) for subfield in field])
-    else:
-        field = unicode(field)
-    return field
-
-
-
-def remove_links(row):
-    for field in row.keys():
-        row[field] = console_repr(row[field])
-
-
-def smallest_list_of(widths, of, max_width):
-    of_truncated = []
-    current_width = 0
-    for key in of:
-        width = widths.get(key)
-        if current_width + width > max_width:
-            return of_truncated
-        else:
-            of_truncated.append(key)
-        current_width += width
-    return of_truncated
-
-
-def export(arguments, settings):
-    trim_columns = arguments.get('--trim')
-    pp = pprint.PrettyPrinter(indent=4)
-    resource = arguments.get('<resource>')
-    limit = arguments.get('--limit')
-    filter_expression = arguments.get('--filter')
-    output_fields = arguments.get('--fields')
-    csv_export = arguments.get('--csv')
-    if not resource:
-        print "Resource not specified. Type beast inspect [resource] to inspect available fields."
-        return inspect(arguments, settings)
-    data = get_resource(settings, resource, limit)
-    result_data = []
-    first = True
-    if limit:
-        print "Limited rows requested: %s" % limit
-    for row in data['objects']:
-        if not first:
-            first = False
+    def put_resource(self, settings, resource, id, data,):
+        session = self.get_session(settings)
+        username = settings.get('username')
+        api_key = settings.get('api_key')
         try:
-            e = eval("%s" % (filter_expression or True))
-        except Exception as e:
-            print("Filter epression invalid: %s" % e)
-            sys.exit(5)
+            data = getattr(session, resource)(id).put(
+                data=data,
+                username=username,
+                api_key=api_key
+            )
+        except slumber.exceptions.HttpClientError as error:
+            print('Error: ', error.content)
+        return data
 
-        all_fields = row.keys()
-        of = output_fields.split(',') if output_fields else all_fields
-        if e:
-            if csv_export:
-                result_data.append(','.join([unicode(multiget(row, key)) for key in of]))
+    def get_resource(self, settings, resource, limit=None, filters=None,):
+        session = self.get_session(settings)
+        resource = '' if not resource else resource
+        limit = 0 if not limit else limit
+        attrs = [
+            ('username', settings.get('username')),
+            ('api_key', settings.get('api_key')),
+            ('limit', limit),
+        ]
+        if filters:
+            url_dict = urlparse.parse_qsl(filters)
+            attrs.extend(url_dict)
+        attrs_dict = dict(attrs)
+        return getattr(session, resource).get(**dict(attrs_dict))
+
+    def get_schema(self, settings, resource=None, filters=False,):
+        rows, columns = Content().get_terminal_size()
+        if not resource:
+            print("-" * columns)
+            data = self.get_resource(settings, '')
+            list_of_resources = [api_resource for api_resource in data]
+            print('\n'.join(sorted(list_of_resources)))
+        else:
+            print("-" * columns)
+            schema = '%s/schema/' % resource
+            data = self.get_resource(settings, resource=schema)
+
+            for field in data['fields']:
+                if field in data['filtering'].keys():
+                    print('%s*' % field)
+                else:
+                    print(field)
+
+
+class Content(object):
+    def get_api_objects(self, data, output_fields,):
+        if not 'objects' in data:
+            return data, []
+        content = []
+        for row in data['objects']:
+            header = output_fields if output_fields else row.keys()
+            content.append(self.remove_links(row))
+        return header, content
+
+    def console_repr(self, field,):
+        if type(field) == type(u''):
+            if '/api/v0.9/' in field:
+                field = unicode(field.replace('/api/v0.9/',''))
             else:
-                remove_links(row)
-                result_data.append(row)
-    if csv_export:
-        for row in of:
-            sys.stdout.write(row)
-            sys.stdout.write(",")
-        print
-        for i in result_data:
-            print(i)
-    else:
-        widths = defaultdict(int)
-        for row in of:
-            if not trim_columns:
-                widths[row] = len(row) + 4
+                field = unicode(field[:10])
+        elif type(field) == type(False):
+            field = 'x' if field else 'o'
+        elif type(field) == type({}):
+            field = field['id']
+        elif type(field) == type(None):
+            field = ''
+        elif type(field) == type([]):
+            field = ','.join(
+                [self.console_repr(subfield) for subfield in field]
+            )
+        else:
+            field = unicode(field)
+        return field
+
+    def remove_links(self, row,):
+        for field in row.keys():
+            encode_field = field.encode('utf-8')
+            row[encode_field] = self.console_repr(row[encode_field])
+        return row
+
+    def smallest_list_of(self, widths, output_fields, max_width,):
+        of_truncated = []
+        current_width = 0
+        for key in output_fields:
+            width = widths.get(key)
+            if current_width + width > max_width:
+                return of_truncated
             else:
-                widths[row] = 5
+                of_truncated.append(key)
+            current_width += width
+        return of_truncated
 
-        for row in result_data:
-            for key in row.keys():
-                widths[key] = max(widths[key], len(row[key])+4)
-                all_fields = row.keys()
-                of = output_fields.split(',') if output_fields else all_fields
-
-        max_width = 120
+    def trim_colums(self, of, widths, trim_columns, result_data,
+        output_fields, max_width,):
+        #FIXME: it doesn't work
+        for row in of:
+            widths[row] = len(row) + 4 if not trim_columns else 5
 
         if not output_fields:
-            of = smallest_list_of(widths, of, max_width)
+            # FIXME: uses name, barcode or any major field - whitelist?
+            of = self.smallest_list_of(widths, of, max_width)
+        else:
+            for row in result_data:
+                for key in row.keys():
+                    widths[key] = max(widths[key], len(row[key])+4)
+                    all_fields = row.keys()
+                    of = output_fields if output_fields else all_fields
+        return of, widths
 
-        print "-" * max_width
+    def __get_terminal_size_windows(self):
+        res = None
+        try:
+            from ctypes import windll, create_string_buffer
+            h = windll.kernel32.GetStdHandle(-12)
+            csbi = create_string_buffer(22)
+            res = windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
+        except:
+            return 80, 25
+        if res:
+            import struct
+            (bufx, bufy, curx, cury, wattr,
+             left, top, right, bottom, maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+            return bufy, bufx
+        else:
+            return 80, 25
+
+    def get_terminal_size(self):
+        if PLATFORM == 'Windows':
+            return self.__get_terminal_size_windows()
+        elif sys.stdout.isatty():
+            data = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, '1234')
+            return struct.unpack('hh', data)
+        return 60, 120
+
+
+class Writer(Content):
+    def write_header(self, of, result_data, trim_columns, output_fields,
+        max_width, widths,):
+        of, widths = self.trim_colums(
+            of,
+            widths,
+            trim_columns,
+            result_data,
+            output_fields,
+            max_width,
+        )
+        print("-" * max_width)
         sys.stdout.write("|")
         for key in of:
             fill = widths.get(key)
             align = widths.get(key)
             sys.stdout.write(
                 ' {: <{fill}.{align}}|'.format(
-                    key, fill=fill-4, align=align-4))
+                    key,
+                    fill=fill-4,
+                    align=align-4
+                )
+            )
         sys.stdout.write('\n')
 
+    def write_rows(self, of, result_data, trim_columns, output_fields,
+        max_width, widths,):
+        of, widths = self.trim_colums(
+            of,
+            widths,
+            trim_columns,
+            result_data,
+            output_fields,
+            max_width,
+        )
         for row in result_data:
-            print "-" * max_width
+            print("-" * max_width)
             sys.stdout.write("|")
             for key in of:
-                #key = row.keys()[key_row]
                 fill = widths.get(key)
                 align = widths.get(key)
                 sys.stdout.write(
                     ' {: <{fill}.{align}}|'.format(
-                        row[key].encode('utf-8','ignore'), fill=fill-4, align=align-4))
+                        row[key].encode('utf-8'),
+                        fill=fill-4,
+                        align=align-4
+                    )
+                )
             sys.stdout.write('\n')
 
 
-    #if result_data:
-    #    print high(yaml.safe_dump(result_data))
+class WriterCSV(object):
+    def __init__(self, f=cStringIO.StringIO(), dialect=csv.excel,
+        encoding="utf-8", **kwds):
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row,):
+        self.writer.writerow([item.encode("utf-8") for item in row])
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        data = self.encoder.encode(data)
+        self.stream.write(data)
+        self.queue.truncate(0)
+        return data
+
+    def write(self, header, content,):
+        sys.stdout.write(self.writerow(header))
+        for row in content:
+            sys.stdout.write(self.writerow(
+                item for key, item in row.items())
+            )
 
 
-def multiget(row, key):
-    if not key:
-        print("Empty field error. Please check if all fields are given")
-        sys.exit(1)
-    actual = row
-    nested = key.split('.')
-    for n in nested:
+def show(arguments, settings,):
+    resource = arguments.get('<resource>', '')
+    limit = arguments.get('--limit')
+    fields = arguments.get('--fields')
+    out_fls = [
+        field.strip() for field in fields.split(',')
+    ] if fields else None
+    rows, columns = Content().get_terminal_size()
+    max_width = int(arguments.get('--width') or columns)
+
+    if not resource:
+        print("Ralph API, schema")
+        return Api().get_schema(settings, None)
+    elif arguments.get('--schema'):
+        print("Ralph API > %s, schema" % resource)
+        return Api().get_schema(settings, resource)
+
+    data = Api().get_resource(
+        settings,
+        resource,
+        limit,
+        arguments.get('--filter'),
+    )
+
+    print("Ralph API  > %s" % resource)
+    header, content = Content().get_api_objects(data, out_fls)
+
+    if limit:
+        print("Limit: %s" % limit)
+
+    if arguments.get('--csv'):
+        return WriterCSV().write(header, content)
+
+    Writer().write_header(
+        header,
+        content,
+        arguments.get('--trim'),
+        out_fls,
+        max_width,
+        defaultdict(int),
+    )
+    Writer().write_rows(
+        header,
+        content,
+        arguments.get('--trim'),
+        out_fls,
+        max_width,
+        defaultdict(int),
+    )
+
+
+def update(arguments, settings,):
+    resource = arguments.get('<resource>')
+    id = arguments.get('<id>')
+    fields = arguments.get('<fields>').split(',')
+    fields_values = arguments.get('<fields_values>')
+    for row in csv.reader([fields_values],
+        quotechar='"', quoting=csv.QUOTE_MINIMAL):
+        pass
+    data = dict(zip(fields, row))
+    Api().put_resource(settings, resource, id, data)
+
+
+def do_main(arguments,):
+    if arguments.get('--debug'):
+        stopwatch_start = time.time()
+    settings = dict()
+    config_file = os.path.abspath("config")
+    additional_config_file = os.path.expanduser("~/.beast/config")
+    try:
+        execfile(config_file, settings)
+    except IOError:
         try:
-            actual = actual[n]
-        except KeyError:
-            print "Unknown field: %s" % key
-            sys.exit(3)
-    return actual
+            execfile(additional_config_file, settings)
+        except IOError, e:
+            if e.errno == errno.ENOENT:
+                print("Config file doesn't exist.")
+            else:
+                print(e)
+            sys.exit(4)
+    if arguments.get('show'):
+        show(arguments, settings)
+    elif arguments.get('update'):
+        update(arguments, settings)
 
-
-def high(s):
-    if sys.stdout.isatty() or sys.stdin.isatty():
-        return s
-    else:
-        return pygments.highlight(
-            s,
-            pygments.lexers.YamlLexer(),
-            pygments.formatters.Terminal256Formatter()
-        )
+    if arguments.get('--debug'):
+        print('\nTotal time: %s sec' % round(time.time()-stopwatch_start, 2))
 
 
 def main():
     arguments = docopt(__doc__, version='1.2.3')
     do_main(arguments)
 
+
 if __name__ == '__main__':
     main()
-

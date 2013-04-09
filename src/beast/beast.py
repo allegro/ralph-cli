@@ -14,22 +14,29 @@ Usage:
 
 """
 
+import platform
+PLATFORM = platform.system();
+if not PLATFORM == 'Windows':
+    import fcntl #pdcurses
+    import termios
+
 import codecs
 import cStringIO
 import csv
-import fcntl
+import errno
 import os
+import platform
 import requests
 import slumber
 import struct
 import sys
 import time
-import termios
 import urlparse
-
 
 from collections import defaultdict
 from docopt import docopt
+
+
 
 
 class Api(object):
@@ -162,8 +169,27 @@ class Content(object):
                     of = output_fields if output_fields else all_fields
         return of, widths
 
+    def __get_terminal_size_windows(self):
+        res = None
+        try:
+            from ctypes import windll, create_string_buffer
+            h = windll.kernel32.GetStdHandle(-12)
+            csbi = create_string_buffer(22)
+            res = windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
+        except:
+            return 80, 25
+        if res:
+            import struct
+            (bufx, bufy, curx, cury, wattr,
+             left, top, right, bottom, maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+            return bufy, bufx
+        else:
+            return 80, 25
+
     def get_terminal_size(self):
-        if sys.stdout.isatty():
+        if PLATFORM == 'Windows':
+            return self.__get_terminal_size_windows()
+        elif sys.stdout.isatty():
             data = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, '1234')
             return struct.unpack('hh', data)
         return 60, 120
@@ -269,7 +295,7 @@ def show(arguments, settings,):
         arguments.get('--filter'),
     )
 
-    print("Ralph API > %s" % resource)
+    print("Ralph API  > %s" % resource)
     header, content = Content().get_api_objects(data, out_fls)
 
     if limit:
@@ -312,12 +338,19 @@ def do_main(arguments,):
     if arguments.get('--debug'):
         stopwatch_start = time.time()
     settings = dict()
-    config_file = os.path.expanduser("~/.beast/config")
+    config_file = os.path.abspath("config")
+    additional_config_file = os.path.expanduser("~/.beast/config")
     try:
         execfile(config_file, settings)
     except IOError:
-        print("Config file ~/.beast/config doesn't exist.")
-        sys.exit(4)
+        try:
+            execfile(additional_config_file, settings)
+        except IOError, e:
+            if e.errno == errno.ENOENT:
+                print("Config file doesn't exist.")
+            else:
+                print(e)
+            sys.exit(4)
     if arguments.get('show'):
         show(arguments, settings)
     elif arguments.get('update'):

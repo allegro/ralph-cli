@@ -4,7 +4,9 @@ import os
 import sys
 from setuptools import setup, find_packages
 from distutils.core import setup
-import py2exe
+import platform
+if platform.system() == 'Windows':
+    import py2exe
 
 assert sys.version_info >= (2, 7), "Python 2.7+ required."
 

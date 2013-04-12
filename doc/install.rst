@@ -8,7 +8,9 @@ installed.
 Windows
 -------
 
-Download ``beast.exe`` file and prepare the configuration file.
+Download `beast.exe` file and prepare the configuration file.
+
+.. _beast.exe: https://github.com/allegro/ralph_beast/raw/master/beast_windows.zip
 
 The configuration file should be placed in the same directory as ``beast.exe`` or home directory.
 Config file should be contain such data  :ref:`config_file`
@@ -41,4 +43,4 @@ Config file - example
   username="jan.kowalski"
   api_key="478457f9f32323201ebde8ef79cd9d3a028ced56747"
   url="https://ralph-url.com"
-  version="v0.9"
+  version="0.9"

@@ -415,8 +415,7 @@ def main():
 
 
 def print_err(s):
-    cprint(s, 'LBLUE', verbose=True)
-    # sys.stderr.write(s + '\n')
+    sys.stderr.write(s + '\n')
 
 
 def cprint(string, color='WHITE', verbose=False):

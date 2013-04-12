@@ -32,7 +32,9 @@ import sys
 import time
 import urlparse
 
+
 from collections import defaultdict
+from colorconsole import terminal
 from docopt import docopt
 
 SHOW_VERBOSE = True
@@ -96,16 +98,15 @@ class Api(object):
             print_err('Server error: %s' % e.content)
             sys.exit(10)
 
-
     def get_schema(self, settings, resource=None, filters=False,):
         rows, columns = get_terminal_size()
         if not resource:
-            print("-" * columns)
+            cprint("-" * columns, 'GREEN')
             data = self.get_resource(settings, '')
             list_of_resources = [api_resource for api_resource in data]
             print('\n'.join(sorted(list_of_resources)))
         else:
-            print("-" * columns)
+            cprint("-" * columns, 'GREEN')
             schema = '%s/schema/' % resource
             data = self.get_resource(settings, resource=schema)
             for field_name in data['fields']:
@@ -237,30 +238,34 @@ class ConsoleWriter(Writer):
                 self.columns_widths[key] = max(self.columns_widths[key], llen(row[key]))
 
     def write_header(self):
-        print("-" * self.max_width)
-        sys.stdout.write("|")
+        cprint("-" * self.max_width, 'GREEN')
+        cprint("|", 'GREEN')
         for key in self.columns_visible:
             fill = self.columns_widths.get(key)
-            sys.stdout.write(
-                ' {:<{fill}} |'.format(
+            cprint(
+                ' {:<{fill}}'.format(
                     key[:fill-4].encode('utf-8'),
                     fill=fill-4,
-                )
+                ),
+                'LGREEN',
             )
-        sys.stdout.write('\n')
-        print("-" * self.max_width)
+            cprint(" |", 'GREEN')
+        cprint('\n')
+        cprint("-" * self.max_width, 'GREEN')
 
     def write_row(self, row):
-        sys.stdout.write("|")
+        cprint("|", 'GREEN')
         for key in self.columns_visible:
             fill = self.columns_widths.get(key)
-            sys.stdout.write(
-                ' {:<{fill}} |'.format(
+            cprint(
+                ' {:<{fill}}'.format(
                     row[key][:fill-4].encode('utf-8'),
                     fill=fill-4,
-                )
+                ),
+                'WHITE',
             )
-        sys.stdout.write('\n')
+            cprint(" |", 'GREEN')
+        cprint('\n')
 
 
 class CSVWriter(Writer):
@@ -287,13 +292,13 @@ class CSVWriter(Writer):
         return data
 
     def write_header(self):
-        sys.stdout.write(self._write(
+        cprint(self._write(
             self.columns_requested or self.get_all_columns()))
 
     def write_row(self, row):
         columns = self.columns_requested or self.get_all_columns()
         row = ([value for key, value in row.iteritems() if key in columns])
-        sys.stdout.write(self._write(row))
+        cprint(self._write(row))
 
 
 def show(arguments, settings):
@@ -313,13 +318,13 @@ def show(arguments, settings):
         field.strip() for field in fields_requested.split(',')
     ] if fields_requested else []
     if not resource:
-        print_debug("Available resources:")
+        cprint("Available resources:", 'LCYAN', verbose=True)
         return Api().get_schema(settings, None)
     elif arguments.get('--schema'):
-        print_debug("Schema of `%s` resource:" % resource)
+        cprint("Schema of `%s` resource:" % resource, 'LCYAN', verbose=True)
         return Api().get_schema(settings, resource)
 
-    print_debug("Resource: `%s` " % resource)
+    cprint("Resource: `%s` " % resource, 'LCYAN', verbose=True)
     response = Api().get_resource(
         settings,
         resource,
@@ -336,9 +341,9 @@ def show(arguments, settings):
     rows, columns = get_terminal_size()
     max_width = int(arguments.get('--width') or columns)
 
-    print_debug("Total count: %s" % total_count)
+    cprint("Total count: %s" % total_count, 'LCYAN', verbose=True)
     if limit:
-        print_debug("Limit: %s" % limit)
+        cprint("Limit: %s" % limit, 'LCYAN', verbose=True)
 
     trim = arguments.get('--trim')
     parameters = dict(data=content.get_repr_rows(), columns_requested=fields_requested,
@@ -366,7 +371,7 @@ def update(arguments, settings,):
 
 def do_main(arguments,):
     debug = arguments.get('--debug')
-    if debug:
+    if debug and SHOW_VERBOSE:
         stopwatch_start = time.time()
     settings = dict()
     config_file = os.path.abspath("config")
@@ -396,8 +401,12 @@ def do_main(arguments,):
     elif arguments.get('update'):
         update(arguments, settings)
 
-    if debug:
-        print_debug('\nTotal time: %s sec' % round(time.time()-stopwatch_start, 2))
+    if debug and SHOW_VERBOSE:
+        cprint(
+            '\nTotal time: %s sec' % round(time.time()-stopwatch_start, 2),
+            'LCYAN',
+             verbose=True
+        )
 
 
 def main():
@@ -405,13 +414,18 @@ def main():
     do_main(arguments)
 
 
-def print_debug(s):
-    if SHOW_VERBOSE:
-        sys.stderr.write(s + '\n')
-
-
 def print_err(s):
-    sys.stderr.write(s + '\n')
+    cprint(s, 'LBLUE', verbose=True)
+    # sys.stderr.write(s + '\n')
+
+
+def cprint(string, color='WHITE', verbose=False):
+    term = terminal.get_terminal()
+    term.set_color(terminal.colors[color])
+    string = string + '\n' if verbose else string
+    sys.stdout.write(string)
+    term.reset()
+
 
 if __name__ == '__main__':
     main()

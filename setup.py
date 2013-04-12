@@ -41,6 +41,7 @@ setup(
         'pygments',
         'docopt',
         'pyyaml',
+        'colorconsole',
     ],
     entry_points={
         'console_scripts': [

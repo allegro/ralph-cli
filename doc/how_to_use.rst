@@ -158,13 +158,3 @@ Beast can prepare data to export ``csv`` or ``trim`` format.
   ~/beast export venture --csv > ~/ralph_ventures.csv
 
 CSV file is encoding to ``Unicode(UTF-8)`` and separated by ``comma``.::
-
-If you use Windows, yours home directory path is: ::
-
-  c:\cygwin\home\windows_user_name\
-
-You can also open file from console in yours text editor and save on preferred
-place. ::
-
-  cygstart.exe ~/ralph_ventuures.csv
-

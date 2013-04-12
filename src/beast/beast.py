@@ -318,13 +318,13 @@ def show(arguments, settings):
         field.strip() for field in fields_requested.split(',')
     ] if fields_requested else []
     if not resource:
-        cprint("Available resources:", 'LCYAN', verbose=True)
+        cprint("Available resources:\n", 'LCYAN', verbose=True)
         return Api().get_schema(settings, None)
     elif arguments.get('--schema'):
-        cprint("Schema of `%s` resource:" % resource, 'LCYAN', verbose=True)
+        cprint("Schema of `%s` resource:\n" % resource, 'LCYAN', verbose=True)
         return Api().get_schema(settings, resource)
 
-    cprint("Resource: `%s` " % resource, 'LCYAN', verbose=True)
+    cprint("Resource: `%s` \n" % resource, 'LCYAN', verbose=True)
     response = Api().get_resource(
         settings,
         resource,
@@ -341,9 +341,9 @@ def show(arguments, settings):
     rows, columns = get_terminal_size()
     max_width = int(arguments.get('--width') or columns)
 
-    cprint("Total count: %s" % total_count, 'LCYAN', verbose=True)
+    cprint("Total count: %s\n" % total_count, 'LCYAN', verbose=True)
     if limit:
-        cprint("Limit: %s" % limit, 'LCYAN', verbose=True)
+        cprint("Limit: %s\n" % limit, 'LCYAN', verbose=True)
 
     trim = arguments.get('--trim')
     parameters = dict(data=content.get_repr_rows(), columns_requested=fields_requested,
@@ -403,9 +403,9 @@ def do_main(arguments,):
 
     if debug and SHOW_VERBOSE:
         cprint(
-            '\nTotal time: %s sec' % round(time.time()-stopwatch_start, 2),
+            '\nTotal time: %s sec\n' % round(time.time()-stopwatch_start, 2),
             'LCYAN',
-             verbose=True
+            verbose=True,
         )
 
 
@@ -419,11 +419,17 @@ def print_err(s):
 
 
 def cprint(string, color='WHITE', verbose=False):
-    term = terminal.get_terminal()
-    term.set_color(terminal.colors[color])
-    string = string + '\n' if verbose else string
-    sys.stdout.write(string)
-    term.reset()
+    if sys.stdout.isatty():
+        term = terminal.get_terminal()
+        term.set_color(terminal.colors[color])
+        if verbose:
+            if SHOW_VERBOSE:
+                sys.stdout.write(string)
+        else:
+            sys.stdout.write(string)
+        term.reset()
+    else:
+        sys.stdout.write(string)
 
 
 if __name__ == '__main__':

@@ -141,7 +141,11 @@ class Content(object):
         elif isinstance(field, bool):
             rep = 'x' if field else 'o'
         elif isinstance(field, dict):
-            rep = unicode(field['id'])
+            try:
+                # choice
+                rep = unicode(field['id'])
+            except KeyError:
+                rep = unicode(field[field.keys()[0]])
         elif field is None:
             rep = ''
         elif isinstance(field, list):

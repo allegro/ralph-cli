@@ -38,9 +38,7 @@ setup(
     install_requires=[
         'requests==0.14.2',
         'slumber',
-        'pygments',
         'docopt',
-        'pyyaml',
         'colorconsole',
     ],
     entry_points={

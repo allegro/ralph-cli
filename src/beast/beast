@@ -1,0 +1,4 @@
+#!/bin/sh
+
+source ~/.beast/virtual/bin/activate
+python ~/.beast/beast/src/beast/beast.py "$@"

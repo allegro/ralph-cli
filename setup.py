@@ -20,13 +20,13 @@ from beast import VERSION
 release = ".".join(str(num) for num in VERSION)
 
 setup(
-    name='beast',
+    name='ralph_beast',
     version=release,
     author='Grupa Allegro Sp. z o.o. and Contributors',
     author_email='it-beast-dev@allegro.pl',
     description="Beast, ralph API client API",
     long_description=long_description,
-    url='http://beast.allegrogroup.com/',
+    url='http://github.com/allegro/ralph_beast',
     keywords='',
     platforms=['any'],
     license='Apache Software License v2.0',
@@ -38,9 +38,7 @@ setup(
     install_requires=[
         'requests==0.14.2',
         'slumber',
-        'pygments',
         'docopt',
-        'pyyaml',
         'colorconsole',
     ],
     entry_points={

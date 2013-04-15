@@ -2,8 +2,7 @@
 How to install
 ==============
 
-Before you can begin installation check that your system has ``curl`` library
-installed.
+
 
 Windows
 -------
@@ -16,7 +15,7 @@ The configuration file should be placed in the same directory as ``beast.exe`` o
 Config file should be contain such data  :ref:`config_file`
 
 
-Linux and MacOS
+MacOS
 ---------------
 
 Put on your console below command to install.::
@@ -27,6 +26,22 @@ or: ::
 
   $ curl https://raw.github.com/allegro/ralph_beast/master/install.sh | bash -
 
+
+
+Linux
+---------------
+
+Please install curl if not installed, and identically to MacOS install:
+
+  $ pip install ralph-beast
+
+or: ::
+
+  $ curl https://raw.github.com/allegro/ralph_beast/master/install.sh | bash -
+
+
+Configuration
+=============
 
 Now do you need configuration file. In your home directory create directory
 ``.beast`` and add text file named ``config``.

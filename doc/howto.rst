@@ -78,6 +78,15 @@ If you need to see filtered data use: ::
 
   $ ~/beast show venture --filter="symbol=venture2&modified=2012-06-14"
 
+Available filters:
+``exact``, ``iexact``, ``contains``, ``icontains``, ``in``, ``gt``, ``gte``, ``lt``, ``lte``, ``startswith``,
+``istartswith``, ``endswith``, ``iendswith``, ``range``, ``year``, ``month``, ``day``, ``week_day``, ``hour``,
+``minute``, ``second``, ``isnull``, ``search``, ``regex``, ``iregex``::
+
+Read more about Django ORM filters_.
+
+.. _filters: https://docs.djangoproject.com/en/dev/ref/models/querysets/#field-lookups
+
 Output: ::
 
   -----------------------------------------------------------------------------------------------------

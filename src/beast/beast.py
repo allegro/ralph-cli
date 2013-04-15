@@ -238,7 +238,7 @@ class ConsoleWriter(Writer):
                 self.columns_widths[key] = max(self.columns_widths[key], llen(row[key]))
 
     def write_header(self):
-        cprint("-" * self.max_width, 'GREEN')
+        cprint("-" * self.max_width + '\n', 'GREEN')
         cprint("|", 'GREEN')
         for key in self.columns_visible:
             fill = self.columns_widths.get(key)
@@ -251,7 +251,7 @@ class ConsoleWriter(Writer):
             )
             cprint(" |", 'GREEN')
         cprint('\n')
-        cprint("-" * self.max_width, 'GREEN')
+        cprint("-" * self.max_width + '\n', 'GREEN')
 
     def write_row(self, row):
         cprint("|", 'GREEN')
@@ -429,7 +429,8 @@ def cprint(string, color='WHITE', verbose=False):
             sys.stdout.write(string)
         term.reset()
     else:
-        sys.stdout.write(string)
+        if not verbose:
+            sys.stdout.write(string)
 
 
 if __name__ == '__main__':

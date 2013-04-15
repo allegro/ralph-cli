@@ -40,6 +40,9 @@ or: ::
   $ curl https://raw.github.com/allegro/ralph_beast/master/install.sh | bash -
 
 
+Configuration
+=============
+
 Now do you need configuration file. In your home directory create directory
 ``.beast`` and add text file named ``config``.
 

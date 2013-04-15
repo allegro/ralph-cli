@@ -6,6 +6,10 @@ Beast is convenient Ralph API commandline client.
 Docs
 ----
 
-How to install https://github.com/ralph_beast/beast/blob/master/doc/install.rst
+- `how to install`_
 
-How to use https://github.com/ralph_beast/beast/blob/master/doc/how_to_use.rst
+.. _how to install: https://github.com/allegro/ralph_beast/blob/master/doc/install.rst
+
+- howto_
+
+.. _howto: https://github.com/allegro/ralph_beast/blob/master/doc/how_to_use.rst

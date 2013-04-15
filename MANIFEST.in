@@ -1,4 +1,4 @@
 recursive-include doc *.py *.rst *.txt *.html *.css *.js *.png *.git *.jpg *.conf *.bat *.pdf *.docx Makefile
-include README.rst CHANGES.rst install.sh beast_windows.zip
+include README.rst CHANGES.rst install.sh
 recursive-include src/beast/ *.py
 prune doc/_build

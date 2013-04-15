@@ -43,8 +43,11 @@ or: ::
 Configuration
 =============
 
-Now do you need configuration file. In your home directory create directory
-``.beast`` and add text file named ``config``.
+Now you need configuration file. Create file 
+
+~/.beast/config
+
+In the Windows distribution file is already included in the package.
 
 Config file should be contain such data  :ref:`config_file`
 

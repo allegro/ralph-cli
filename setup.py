@@ -24,7 +24,7 @@ setup(
     version=release,
     author='Grupa Allegro Sp. z o.o. and Contributors',
     author_email='it-beast-dev@allegro.pl',
-    description="Beast, ralph API client API",
+    description="Beast, ralph API client",
     long_description=long_description,
     url='http://github.com/allegro/ralph_beast',
     keywords='',

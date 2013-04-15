@@ -1,7 +1,10 @@
 ralph_beast
 ===========
 
-Beast is convenient Ralph API commandline client.
+Beast is convenient Ralph API commandline client. 
+
+It can be used as generic Tastypie commandline client for querying, manipulating
+REST resources from the shell.
 
 Docs
 ----

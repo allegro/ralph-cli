@@ -12,4 +12,4 @@ Docs
 
 - howto_
 
-.. _howto: https://github.com/allegro/ralph_beast/blob/master/doc/how_to_use.rst
+.. _howto: https://github.com/allegro/ralph_beast/blob/master/doc/howto.rst

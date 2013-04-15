@@ -69,7 +69,6 @@ setup(
     zipfile=None,
     classifiers=[
         'Development Status :: 4 - Beta',
-        'Framework :: ',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',

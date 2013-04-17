@@ -13,7 +13,7 @@ source ~/.beast/virtual/bin/activate
 cd ~/.beast
 
 git clone https://github.com/allegro/ralph_beast.git
-cd beast
+cd ralph_beast
 pip install -e .
 ln -s ~/.beast/virtual/bin/beast ~/beast
 chmod a+x ~/beast

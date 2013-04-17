@@ -162,8 +162,8 @@ Shows request time::
 Export to the file
 ~~~~~~~~~~~~~~~~~~
 
-Beast can prepare data to export ``csv`` or ``trim`` format.
+Beast can export to the ``csv`` format.
 ::
-  ~/beast export venture --csv > ~/ralph_ventures.csv
+  ~/beast show venture --csv > ~/ralph_ventures.csv
 
 CSV file is encoding to ``Unicode(UTF-8)`` and separated by ``comma``.::

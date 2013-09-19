@@ -2,12 +2,23 @@
 How to install
 ==============
 
+Linux
+---------------
+
+The simplest way to install ralph beast is(you need curl):
+
+  $ curl https://raw.github.com/allegro/ralph_beast/master/install.sh | bash -
+
+or if you feel comfortable with pip:
+
+  $ pip install ralph-beast
+
 
 
 Windows
 -------
 
-Download `beast.exe` file and prepare the configuration file.
+We provide windows binary. Just Download `beast.exe` file and prepare the configuration file.
 
 .. _beast.exe: https://github.com/allegro/ralph_beast/raw/master/beast_windows.zip
 
@@ -28,16 +39,7 @@ or: ::
 
 
 
-Linux
----------------
 
-Please install curl if not installed, and identically to MacOS install:
-
-  $ pip install ralph-beast
-
-or: ::
-
-  $ curl https://raw.github.com/allegro/ralph_beast/master/install.sh | bash -
 
 
 Configuration
@@ -47,9 +49,9 @@ Now you need configuration file. Create file
 
 ~/.beast/config
 
-In the Windows distribution file is already included in the package.
+Windows binary already contains the file inside directory.
 
-Config file should be contain such data  :ref:`config_file`
+Config file should contain such data  :ref:`config_file`
 
 
 .. _config_file:

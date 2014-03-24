@@ -140,13 +140,16 @@ class Content(object):
             else:
                 rep = unicode(field[:20])
         elif isinstance(field, bool):
-            rep = 'x' if field else 'o'
+            rep = '1' if field else '0'
         elif isinstance(field, dict):
             try:
                 # choice
-                rep = unicode(field['id'])
+                rep = unicode(field['name'] + ':' + str(field['id']))
             except KeyError:
-                rep = unicode(field[field.keys()[0]])
+                if(len(field.keys())) > 0:
+                    rep = unicode(field[field.keys()[0]])
+                else:
+                    rep = ''
         elif field is None:
             rep = ''
         elif isinstance(field, list):
@@ -220,7 +223,7 @@ class ConsoleWriter(Writer):
         columns_visible = []
         current_width = 0
         for key in self.columns_requested or self.get_all_columns():
-            width = self.columns_widths.get(key)
+            width = self.columns_widths.get(key) or 0
             if current_width + width > self.max_width:
                 return columns_visible
             else:

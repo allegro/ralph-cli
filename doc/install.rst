@@ -64,3 +64,10 @@ Config file - example
   api_key="478457f9f32323201ebde8ef79cd9d3a028ced56747"
   url="https://ralph-url.com"
   version="0.9"
+  
+  
+Obtaining api_key
+---------------------
+
+You have to have superadmin privileges to read users api key via admin panel -> users.
+If you don't have, ask Ralph administrators to give you one.

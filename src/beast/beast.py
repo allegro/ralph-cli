@@ -7,7 +7,7 @@ Example usage $ ~/beast show
 
 Usage:
  beast show
- beast show <resource> [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--limit=limit] [--csv] [--trim] [--width=max_width] [--silent]
+ beast show <resource> [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--csv] [--trim] [--width=max_width] [--silent] [--limit=limit]
  beast update <resource> <id> <fields> <fields_values>
  beast -h | --help
  beast --version
@@ -58,12 +58,12 @@ class Api(object):
         )
         return session
 
-    def put_resource(self, settings, resource, id, data,):
+    def create_resource(self, settings, resource, id, data,):
         session = self.get_session(settings)
         username = settings.get('username')
         api_key = settings.get('api_key')
         try:
-            data = getattr(session, resource)(id).put(
+            data = getattr(session, resource).post(
                 data=data,
                 username=username,
                 api_key=api_key,
@@ -72,14 +72,28 @@ class Api(object):
             print_err('Error: ', error.content)
         return data
 
-    def get_resource(self, settings, resource, limit=None, filters=None,):
+    def patch_resource(self, settings, resource, id, data,):
+        session = self.get_session(settings)
+        username = settings.get('username')
+        api_key = settings.get('api_key')
+        try:
+            data = getattr(session, resource)(id).patch(
+                data=data,
+                username=username,
+                api_key=api_key,
+            )
+        except slumber.exceptions.HttpClientError as error:
+            print_err('Error: ', error.content)
+        return data
+
+    def get_resource(self, settings, resource, limit=20, offset=0, filters=None):
         session = self.get_session(settings)
         resource = '' if not resource else resource
-        limit = 0 if not limit else limit
         attrs = [
             ('username', settings.get('username')),
             ('api_key', settings.get('api_key')),
             ('limit', limit),
+            ('offset', offset),
         ]
         if filters:
             url_dict = urlparse.parse_qsl(filters)
@@ -132,7 +146,7 @@ class Content(object):
     def get_repr_rows(self):
         return [self.row_repr(row) for row in self.api_data]
 
-    def field_repr(self, field):
+    def field_repr(self, field, field_name):
         rep = ''
         if isinstance(field, basestring):
             if '/api/v0.9/' in field:
@@ -142,28 +156,41 @@ class Content(object):
         elif isinstance(field, bool):
             rep = '1' if field else '0'
         elif isinstance(field, dict):
-            try:
+            path_requested = self.fields_requested.get(field_name)
+            subdict = field
+            if path_requested:
+                for chain in path_requested:
+                    if chain == '?':
+                        if not type(subdict) == type({}):
+                            cprint('\nError - subobject is not dictionary\n')
+                            sys.exit(5)
+                        cprint('\nAvailable keys: %s' % ','.join(subdict.keys()))
+                        sys.exit(4)
+                    subdict = subdict[chain]
+                return self.field_repr(subdict, field_name)
+            return 'dict'
+            #try:
                 # choice
-                rep = unicode(field['name'] + ':' + str(field['id']))
-            except KeyError:
-                if(len(field.keys())) > 0:
-                    rep = unicode(field[field.keys()[0]])
-                else:
-                    rep = ''
+            #    rep = unicode(field['name'] + ':' + str(field['id']))
+            #except KeyError:
+            #    if(len(field.keys())) > 0:
+            #        rep = unicode(field[field.keys()[0]])
+            #    else:
+            #        rep = ''
         elif field is None:
             rep = ''
         elif isinstance(field, list):
             rep = ','.join(
-                [self.field_repr(subfield) for subfield in field]
+                [self.field_repr(subfield, field_name) for subfield in field]
             )
         else:
             rep = unicode(field)
         return rep
 
-    def row_repr(self, row,):
+    def row_repr(self, row):
         for field in row.keys():
             encode_field = field.encode('utf-8')
-            row[encode_field] = self.field_repr(row[encode_field])
+            row[encode_field] = self.field_repr(row[encode_field], encode_field)
         return row
 
 
@@ -222,7 +249,7 @@ class ConsoleWriter(Writer):
     def get_visible_columns(self):
         columns_visible = []
         current_width = 0
-        for key in self.columns_requested or self.get_all_columns():
+        for key in (self.columns_requested or self.get_all_columns()):
             width = self.columns_widths.get(key) or 0
             if current_width + width > self.max_width:
                 return columns_visible
@@ -247,7 +274,7 @@ class ConsoleWriter(Writer):
         cprint("-" * self.max_width + end_line, 'GREEN')
         cprint("|", 'GREEN')
         for key in self.columns_visible:
-            fill = self.columns_widths.get(key)
+            fill = self.columns_widths.get(key) or 4
             cprint(
                 ' {:<{fill}}'.format(
                     key[:fill-4].encode('utf-8'),
@@ -262,10 +289,10 @@ class ConsoleWriter(Writer):
     def write_row(self, row):
         cprint("|", 'GREEN')
         for key in self.columns_visible:
-            fill = self.columns_widths.get(key)
+            fill = self.columns_widths.get(key) or 4
             cprint(
                 ' {:<{fill}}'.format(
-                    row[key][:fill-4].encode('utf-8'),
+                    unicode(row[key])[:fill-4].encode('utf-8','ignore'),
                     fill=fill-4,
                 ),
                 'WHITE',
@@ -289,7 +316,7 @@ class CSVWriter(Writer):
         self.encoder = codecs.getincrementalencoder(encoding)()
 
     def _write(self, row):
-        self.writer.writerow([item.encode("utf-8") for item in row])
+        self.writer.writerow([item.encode("utf-8") if type(item)==type(1) else str(item) for item in row])
         data = self.queue.getvalue()
         data = data.decode("utf-8")
         data = self.encoder.encode(data)
@@ -303,8 +330,8 @@ class CSVWriter(Writer):
 
     def write_row(self, row):
         columns = self.columns_requested or self.get_all_columns()
-        row = ([value for key, value in row.iteritems() if key in columns])
-        cprint(self._write(row))
+        row_p = [row[key] for key in columns]
+        cprint(self._write(row_p))
 
 
 def show(arguments, settings):
@@ -314,15 +341,27 @@ def show(arguments, settings):
         SHOW_VERBOSE = False
 
     resource = arguments.get('<resource>', '')
-    limit = arguments.get('--limit')
-    if not limit and sys.stdout.isatty():
+    limit_requested = arguments.get('--limit')
+    if sys.stdout.isatty() and (limit_requested is None):
         # default limit for console is 20
-        limit = 20
+        limit_requested = 20
+    elif limit_requested is None:
+        # file output
+        limit_requested = 0
 
-    fields_requested = arguments.get('--fields')
-    fields_requested = [
-        field.strip() for field in fields_requested.split(',')
-    ] if fields_requested else []
+    fields_r = arguments.get('--fields') 
+    fields_requested_args = fields_r.split(',') if fields_r else []
+    fields_requested = {}
+    for f in fields_requested_args:
+        field = f.strip().lower()
+        key = field
+        if ':' in field:
+            key = field.split(':')[0]
+            full_path = field.split(':')[1:]
+            fields_requested[key] = full_path
+        else:
+            fields_requested[key] = []
+
     if not resource:
         cprint("Available resources:\n", 'LCYAN', verbose=True)
         return Api().get_schema(settings, None)
@@ -331,34 +370,55 @@ def show(arguments, settings):
         return Api().get_schema(settings, resource)
 
     cprint("Resource: `%s` \n" % resource, 'LCYAN', verbose=True)
-    response = Api().get_resource(
-        settings,
-        resource,
-        limit,
-        arguments.get('--filter'),
-    )
+    finished = False
 
-    total_count = response['meta']['total_count']
-    limit = response['meta']['limit']
-    #next_link = response['meta'].get('next')
+    first = True
+    offset = 0
+    fetched = 0
+    while not finished:
+        response = Api().get_resource(
+            settings,
+            resource,
+            limit=50,
+            offset=offset,
+            filters=arguments.get('--filter'),
+        )
+        total_count = response['meta']['total_count']
+        limit = response['meta']['limit']
+        next_link = response['meta'].get('next')
+        if not next_link: 
+            finished = True
+            break
+        offset += (int(limit) + 1)
 
-    api_data = response.get('objects', [])
-    content = Content(api_data, fields_requested)
-    rows, columns = get_terminal_size()
-    max_width = int(arguments.get('--width') or columns)
+        api_data = response.get('objects', [])
+        content = Content(api_data, fields_requested)
+        rows, columns = get_terminal_size()
+        max_width = int(arguments.get('--width') or columns)
+        trim = arguments.get('--trim')
 
-    cprint("Total count: %s\n" % total_count, 'LCYAN', verbose=True)
-    if limit:
-        cprint("Limit: %s\n" % limit, 'LCYAN', verbose=True)
+        if first:
+            cprint("Total count: %s\n" % total_count, 'LCYAN', verbose=True)
+            if limit:
+                cprint("Limit: %s\n" % limit_requested, 'LCYAN', verbose=True)
 
-    trim = arguments.get('--trim')
-    parameters = dict(data=content.get_repr_rows(), columns_requested=fields_requested,
-                      trim=trim, max_width=max_width)
-    writer_class = CSVWriter if arguments.get('--csv') else ConsoleWriter
-    writer = writer_class(**parameters)
-    writer.write_header()
-    for row in api_data:
-        writer.write_row(row)
+        parameters = dict(data=content.get_repr_rows(), columns_requested=fields_requested,
+                          trim=trim, max_width=max_width)
+        writer_class = CSVWriter if arguments.get('--csv') else ConsoleWriter
+        writer = writer_class(**parameters)
+        if first:
+            writer.write_header()
+            first = False
+        for row in api_data:
+            fetched += 1
+            if limit_requested and (fetched > limit_requested):
+                finished = True
+                break
+            try:
+                writer.write_row(row)
+            except KeyError as e:
+                print_err("\n\rCan't find column: %s. Type bast show [resource] --schema to show available columns." % e.args[0])
+                sys.exit(2)
 
 
 def update(arguments, settings,):
@@ -372,7 +432,20 @@ def update(arguments, settings,):
     ):
         pass
     data = dict(zip(fields, row))
-    Api().put_resource(settings, resource, id, data)
+    Api().patch_resource(settings, resource, id, data)
+
+
+def create(arguments, settings,):
+    resource = arguments.get('<resource>')
+    fields = arguments.get('<fields>').split(',')
+    fields_values = arguments.get('<fields_values>')
+    for row in csv.reader(
+        [fields_values],
+        quotechar='"', quoting=csv.QUOTE_MINIMAL
+    ):
+        pass
+    data = dict(zip(fields, row))
+    Api().post_resource(settings, resource, data)
 
 
 def do_main(arguments,):
@@ -416,7 +489,7 @@ def do_main(arguments,):
 
 
 def main():
-    arguments = docopt(__doc__, version='1.2.3')
+    arguments = docopt(__doc__, version='2.0.1')
     do_main(arguments)
 
 

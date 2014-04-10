@@ -6,7 +6,6 @@ Added create new resource function.
 Update function now works correctly.
 Better unicode conversion for border case data.
 
-
 2.0.0
 -----
 Rewritten from scratch version with basic update support and 

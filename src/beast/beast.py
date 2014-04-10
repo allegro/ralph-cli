@@ -9,6 +9,7 @@ Usage:
  beast show
  beast show <resource> [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--csv] [--trim] [--width=max_width] [--silent] [--limit=limit]
  beast update <resource> <id> <fields> <fields_values>
+ beast create <resource> [--data=json_data] [--file=path_to_the_json_file]
  beast -h | --help
  beast --version
 
@@ -31,13 +32,48 @@ import struct
 import sys
 import time
 import urlparse
-
-
+import json
+import fileinput
 from collections import defaultdict
 from colorconsole import terminal
 from docopt import docopt
+from requests.auth import AuthBase
+
 
 SHOW_VERBOSE = True
+
+
+class ErrorHandlerContext(object):
+
+    def __exit__(self, type_, value, exception):
+        if type_ is slumber.exceptions.HttpServerError:
+            msg = json.loads(value.content)['error_message']
+            print_err('Error: %s' % msg)
+            ret = 3
+        elif type_ is slumber.exceptions.HttpClientError:
+            ret = 2
+            print_err('Error: %s ' % value)
+        elif type_ is None:
+            return
+        else:
+            ret = 4
+            print_err('Other Error: %s' % value)
+        sys.exit(ret)
+
+    def __enter__(self):
+        pass
+
+
+class TastypieApikeyAuth(AuthBase):
+
+    def __init__(self, username, apikey):
+        self.username = username
+        self.apikey = apikey
+
+    def __call__(self, r):
+        r.headers['Authorization'] = "ApiKey {0}:{1}".format(
+            self.username, self.apikey)
+        return r
 
 
 def llen(s):
@@ -46,52 +82,44 @@ def llen(s):
 
 
 class Api(object):
+
     def get_session(self, settings,):
         url = settings.get('url')
         if url.endswith('/'):
             url = url.rstrip('/')
         version = settings.get('version')
+        username = settings.get('username')
+        api_key = settings.get('api_key')
         session = requests.session(verify=False)
+        session.auth = TastypieApikeyAuth(username, api_key)
+        session.headers['Content-Type'] = 'application/json'
         session = slumber.API(
             '%(url)s/api/v%(version)s/' % dict(url=url, version=version),
             session=session,
+            #    auth=TastypieApikeyAuth(username, api_key)
         )
         return session
 
-    def create_resource(self, settings, resource, id, data,):
+    def create_resource(self, settings, resource, data):
         session = self.get_session(settings)
-        username = settings.get('username')
-        api_key = settings.get('api_key')
-        try:
+        with ErrorHandlerContext() as a:
             data = getattr(session, resource).post(
                 data=data,
-                username=username,
-                api_key=api_key,
             )
-        except slumber.exceptions.HttpClientError as error:
-            print_err('Error: ', error.content)
         return data
 
-    def patch_resource(self, settings, resource, id, data,):
+    def patch_resource(self, settings, resource, id, data):
         session = self.get_session(settings)
-        username = settings.get('username')
-        api_key = settings.get('api_key')
-        try:
+        with ErrorHandlerContext() as a:
             data = getattr(session, resource)(id).patch(
                 data=data,
-                username=username,
-                api_key=api_key,
             )
-        except slumber.exceptions.HttpClientError as error:
-            print_err('Error: ', error.content)
         return data
 
     def get_resource(self, settings, resource, limit=20, offset=0, filters=None):
         session = self.get_session(settings)
         resource = '' if not resource else resource
         attrs = [
-            ('username', settings.get('username')),
-            ('api_key', settings.get('api_key')),
             ('limit', limit),
             ('offset', offset),
         ]
@@ -99,18 +127,9 @@ class Api(object):
             url_dict = urlparse.parse_qsl(filters)
             attrs.extend(url_dict)
         attrs_dict = dict(attrs)
-        try:
+        with ErrorHandlerContext() as a:
             return getattr(session, resource).get(**dict(attrs_dict))
-        except slumber.exceptions.HttpClientError as e:
-            if e.response.status_code == 401:
-                print_err("Error: Authorization failed")
-                sys.exit(9)
-            else:
-                print_err('Error: %s' % e.content)
-                sys.exit(10)
-        except slumber.exceptions.HttpServerError as e:
-            print_err('Server error: %s' % e.content)
-            sys.exit(10)
+        return data
 
     def get_schema(self, settings, resource=None, filters=False,):
         rows, columns = get_terminal_size()
@@ -139,6 +158,7 @@ class Api(object):
 
 
 class Content(object):
+
     def __init__(self, api_data, fields_requested):
         self.api_data = api_data
         self.fields_requested = fields_requested
@@ -161,26 +181,19 @@ class Content(object):
             if path_requested:
                 for chain in path_requested:
                     if chain == '?':
-                        if not type(subdict) == type({}):
+                        if not isinstance(subdict, dict):
                             cprint('\nError - subobject is not dictionary\n')
                             sys.exit(5)
-                        cprint('\nAvailable keys: %s' % ','.join(subdict.keys()))
+                        cprint('\nAvailable keys: %s' %
+                               ','.join(subdict.keys()))
                         sys.exit(4)
                     subdict = subdict[chain]
                 return self.field_repr(subdict, field_name)
             return 'dict'
-            #try:
-                # choice
-            #    rep = unicode(field['name'] + ':' + str(field['id']))
-            #except KeyError:
-            #    if(len(field.keys())) > 0:
-            #        rep = unicode(field[field.keys()[0]])
-            #    else:
-            #        rep = ''
         elif field is None:
             rep = ''
         elif isinstance(field, list):
-            rep = ','.join(
+            rep = '#'.join(
                 [self.field_repr(subfield, field_name) for subfield in field]
             )
         else:
@@ -190,7 +203,8 @@ class Content(object):
     def row_repr(self, row):
         for field in row.keys():
             encode_field = field.encode('utf-8')
-            row[encode_field] = self.field_repr(row[encode_field], encode_field)
+            row[encode_field] = self.field_repr(
+                row[encode_field], encode_field)
         return row
 
 
@@ -237,6 +251,7 @@ class Writer(object):
 
 
 class ConsoleWriter(Writer):
+
     def __init__(self, data, columns_requested, trim, max_width):
         self.data = data
         self.columns_requested = columns_requested
@@ -265,7 +280,8 @@ class ConsoleWriter(Writer):
 
         for row in data_to_measure:
             for key in row.keys():
-                self.columns_widths[key] = max(self.columns_widths[key], llen(row[key]))
+                self.columns_widths[key] = max(
+                    self.columns_widths[key], llen(row[key]))
 
     def write_header(self):
         end_line = ''
@@ -277,8 +293,8 @@ class ConsoleWriter(Writer):
             fill = self.columns_widths.get(key) or 4
             cprint(
                 ' {:<{fill}}'.format(
-                    key[:fill-4].encode('utf-8'),
-                    fill=fill-4,
+                    key[:fill - 4].encode('utf-8'),
+                    fill=fill - 4,
                 ),
                 'LGREEN',
             )
@@ -292,8 +308,8 @@ class ConsoleWriter(Writer):
             fill = self.columns_widths.get(key) or 4
             cprint(
                 ' {:<{fill}}'.format(
-                    unicode(row[key])[:fill-4].encode('utf-8','ignore'),
-                    fill=fill-4,
+                    unicode(row[key])[:fill - 4].encode('utf-8', 'ignore'),
+                    fill=fill - 4,
                 ),
                 'WHITE',
             )
@@ -302,6 +318,7 @@ class ConsoleWriter(Writer):
 
 
 class CSVWriter(Writer):
+
     def __init__(self, data, columns_requested, trim, max_width):
         self.data = data
         self.columns_requested = columns_requested
@@ -316,7 +333,12 @@ class CSVWriter(Writer):
         self.encoder = codecs.getincrementalencoder(encoding)()
 
     def _write(self, row):
-        self.writer.writerow([item.encode("utf-8") if type(item)==type(1) else str(item) for item in row])
+        try:
+            self.writer.writerow(
+                [item.encode("utf-8", "ignore") if not isinstance(item, int) else unicode(item) for item in row])
+        except Exception as e:
+            import pdb; pdb.set_trace()
+            raise
         data = self.queue.getvalue()
         data = data.decode("utf-8")
         data = self.encoder.encode(data)
@@ -349,7 +371,7 @@ def show(arguments, settings):
         # file output
         limit_requested = 0
 
-    fields_r = arguments.get('--fields') 
+    fields_r = arguments.get('--fields')
     fields_requested_args = fields_r.split(',') if fields_r else []
     fields_requested = {}
     for f in fields_requested_args:
@@ -386,7 +408,7 @@ def show(arguments, settings):
         total_count = response['meta']['total_count']
         limit = response['meta']['limit']
         next_link = response['meta'].get('next')
-        if not next_link: 
+        if not next_link:
             finished = True
             break
         offset += (int(limit) + 1)
@@ -417,7 +439,8 @@ def show(arguments, settings):
             try:
                 writer.write_row(row)
             except KeyError as e:
-                print_err("\n\rCan't find column: %s. Type bast show [resource] --schema to show available columns." % e.args[0])
+                print_err(
+                    "\n\rCan't find column: %s. Type bast show [resource] --schema to show available columns." % e.args[0])
                 sys.exit(2)
 
 
@@ -437,15 +460,14 @@ def update(arguments, settings,):
 
 def create(arguments, settings,):
     resource = arguments.get('<resource>')
-    fields = arguments.get('<fields>').split(',')
-    fields_values = arguments.get('<fields_values>')
-    for row in csv.reader(
-        [fields_values],
-        quotechar='"', quoting=csv.QUOTE_MINIMAL
-    ):
-        pass
-    data = dict(zip(fields, row))
-    Api().post_resource(settings, resource, data)
+    data = arguments.get('--data')
+    if arguments.get('--file'):
+        fname = arguments.get('--file')
+        if fname == '-':
+            data = sys.stdin.read().strip()
+        else:
+            data = open(fname).read().strip()
+    ret = Api().create_resource(settings, resource, data=json.loads(data))
 
 
 def do_main(arguments,):
@@ -479,10 +501,11 @@ def do_main(arguments,):
         show(arguments, settings)
     elif arguments.get('update'):
         update(arguments, settings)
-
+    elif arguments.get('create'):
+        create(arguments, settings)
     if debug and SHOW_VERBOSE:
         cprint(
-            '\nTotal time: %s sec\n' % round(time.time()-stopwatch_start, 2),
+            '\nTotal time: %s sec\n' % round(time.time() - stopwatch_start, 2),
             'LCYAN',
             verbose=True,
         )

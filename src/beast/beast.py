@@ -333,12 +333,8 @@ class CSVWriter(Writer):
         self.encoder = codecs.getincrementalencoder(encoding)()
 
     def _write(self, row):
-        try:
-            self.writer.writerow(
-                [item.encode("utf-8", "ignore") if not isinstance(item, int) else unicode(item) for item in row])
-        except Exception as e:
-            import pdb; pdb.set_trace()
-            raise
+        self.writer.writerow(
+            [item.encode("utf-8", "ignore") if not isinstance(item, int) else unicode(item) for item in row])
         data = self.queue.getvalue()
         data = data.decode("utf-8")
         data = self.encoder.encode(data)

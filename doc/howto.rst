@@ -203,3 +203,60 @@ Beast can export to the ``csv`` format.
   ~/beast show venture --csv > ~/ralph_ventures.csv
 
 CSV file is encoding to ``Unicode(UTF-8)`` and separated by ``comma``.::
+
+
+Add resource
+----------------------------
+
+If you want to create new object through the API use following statement ::
+
+  $ ~/beast create --file=/tmp/data.json
+
+Some of the fields are required for given Resource - field names are identical
+with `beast show` output. ::
+
+
+  $ cat /tmp/data.json
+
+  {
+        "status" : 2,
+        "name" : "some.ci.name",
+        "technical_owners": [],
+        "business_owners": [],
+        "layers" : [
+          {
+            "name" : "Hardware"
+          }
+        ],
+        "type" : {
+          "name" : "Device"
+        },
+        "state" : 2,
+        "barcode" : "come.unique.barcode"
+  }
+
+You can use - file for stding as well: ::
+
+  $ cat /tmp/data.json | ~/beast create --file=-
+
+Or specify data explicit in commandline: ::
+
+  $ ~/beast create --data='{ "status" : 2, "name": "some.ci.name", ... }'
+ 
+
+Update resource
+---------------
+
+If you want to update resource use following statement ::
+
+  $ ~/beast update [resource] [id] [field1],[field2] [value1],[value2] 
+
+
+Example ::
+
+  $ beast update ci 1 name new_name
+
+
+For data security reasons you can update only 1 resource at once - use multiple 
+beast update invocations in shell scripts for bulk changes.
+

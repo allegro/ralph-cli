@@ -21,23 +21,24 @@ if not PLATFORM == 'Windows':
     import fcntl  # pdcurses
     import termios
 
-import codecs
 import cStringIO
+import codecs
+from collections import defaultdict
 import csv
-import errno
+import fileinput
+import json
 import os
-import requests
-import slumber
 import struct
 import sys
 import time
 import urlparse
-import json
-import fileinput
-from collections import defaultdict
+
 from colorconsole import terminal
 from docopt import docopt
+import errno
+import requests
 from requests.auth import AuthBase
+import slumber
 
 from . import VERSION
 

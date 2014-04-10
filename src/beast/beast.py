@@ -39,6 +39,7 @@ from colorconsole import terminal
 from docopt import docopt
 from requests.auth import AuthBase
 
+from . import VERSION
 
 SHOW_VERBOSE = True
 
@@ -508,7 +509,7 @@ def do_main(arguments,):
 
 
 def main():
-    arguments = docopt(__doc__, version='2.0.1')
+    arguments = docopt(__doc__, version='.'.join([unicode(x) for x in VERSION]))
     do_main(arguments)
 
 

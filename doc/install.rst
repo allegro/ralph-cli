@@ -69,5 +69,4 @@ Config file - example
 Obtaining api_key
 ---------------------
 
-You have to have superadmin privileges to read users api key via admin panel -> users.
-If you don't have, ask Ralph administrators to give you one.
+You can find you api_key by clicking on your username on the bottom of the ralph page and selecting API Key link from the menu on the left.

@@ -200,8 +200,8 @@ Shows request time::
 Export to the file
 ~~~~~~~~~~~~~~~~~~
 
-Beast can export to the ``csv`` format.
-::
+Beast can export to the ``csv`` format. ::
+
   ~/beast show venture --csv > ~/ralph_ventures.csv
 
 CSV file is encoding to ``Unicode(UTF-8)`` and separated by ``comma``.::

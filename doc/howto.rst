@@ -212,7 +212,7 @@ Add resource
 
 If you want to create new object through the API use following statement ::
 
-  $ ~/beast create --file=/tmp/data.json
+  $ ~/beast create [resource] [--file=file_path] [--data='json_data']
 
 Some of the fields are required for given Resource - field names are identical
 with `beast show` output. ::
@@ -239,11 +239,11 @@ with `beast show` output. ::
 
 You can use - file for stding as well: ::
 
-  $ cat /tmp/data.json | ~/beast create --file=-
+  $ cat /tmp/data.json | ~/beast create ci --file=-
 
 Or specify data explicit in commandline: ::
 
-  $ ~/beast create --data='{ "status" : 2, "name": "some.ci.name", ... }'
+  $ ~/beast create ci --data='{ "status" : 2, "name": "some.ci.name", ... }'
  
 
 Update resource

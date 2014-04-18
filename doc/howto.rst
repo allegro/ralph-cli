@@ -76,7 +76,7 @@ Filter
 
 If you need to see filtered data use: ::
 
-  $ ~/beast show venture --filter="symbol=venture2&modified=2012-06-14"
+  $ ~/beast show venture --filter="modified=2012-06-14&symbol__in=venture1,venture2"
 
 Available filters:
 ``exact``, ``iexact``, ``contains``, ``icontains``, ``in``, ``gt``, ``gte``, ``lt``, ``lte``, ``startswith``,
@@ -91,6 +91,8 @@ Output: ::
 
   -----------------------------------------------------------------------------------------------------
   | name   | cache_version| created   | symbol | modified  | devices| roles| show_in_ralph| department|
+  -----------------------------------------------------------------------------------------------------
+  | Venture1| 2           | 2012-06-13| venture1 | 2012-06-14||     |      |              | 2         |
   -----------------------------------------------------------------------------------------------------
   | Venture2| 4           | 2012-01-23| venture2 | 2012-06-14||     |      | x            | 2         |
 

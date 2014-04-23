@@ -129,9 +129,9 @@ class Api(object):
             url_dict = urlparse.parse_qsl(filters)
             attrs.extend(url_dict)
         attrs_dict = dict(attrs)
+        #import pdb; pdb.set_trace()
         with ErrorHandlerContext() as a:
             return getattr(session, resource).get(**dict(attrs_dict))
-        return data
 
     def get_schema(self, settings, resource=None, filters=False,):
         rows, columns = get_terminal_size()
@@ -406,7 +406,7 @@ def show(arguments, settings):
         total_count = response['meta']['total_count']
         limit = response['meta']['limit']
         next_link = response['meta'].get('next')
-        if not next_link:
+        if not first and not next_link:
             finished = True
             break
         offset += (int(limit) + 1)

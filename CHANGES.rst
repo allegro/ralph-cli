@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+2.1.1
+~~~~~
+
+* Fixed bug when less than 50 records where returned
+
 2.1.0
 ~~~~~
 * Added pagination support.

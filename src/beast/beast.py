@@ -24,6 +24,7 @@ if not PLATFORM == 'Windows':
 import cStringIO
 import codecs
 from collections import defaultdict
+from collections import OrderedDict
 import csv
 import fileinput
 import json
@@ -129,7 +130,6 @@ class Api(object):
             url_dict = urlparse.parse_qsl(filters)
             attrs.extend(url_dict)
         attrs_dict = dict(attrs)
-        #import pdb; pdb.set_trace()
         with ErrorHandlerContext() as a:
             return getattr(session, resource).get(**dict(attrs_dict))
 
@@ -174,7 +174,7 @@ class Content(object):
             if '/api/v0.9/' in field:
                 rep = unicode(field.replace('/api/v0.9/', ''))
             else:
-                rep = unicode(field[:20])
+                rep = unicode(field)
         elif isinstance(field, bool):
             rep = '1' if field else '0'
         elif isinstance(field, dict):
@@ -369,9 +369,10 @@ def show(arguments, settings):
         # file output
         limit_requested = 0
 
+
     fields_r = arguments.get('--fields')
     fields_requested_args = fields_r.split(',') if fields_r else []
-    fields_requested = {}
+    fields_requested = OrderedDict()
     for f in fields_requested_args:
         field = f.strip().lower()
         key = field

@@ -26,7 +26,6 @@ import codecs
 from collections import defaultdict
 from collections import OrderedDict
 import csv
-import fileinput
 import json
 import os
 import struct
@@ -105,7 +104,7 @@ class Api(object):
 
     def create_resource(self, settings, resource, data):
         session = self.get_session(settings)
-        with ErrorHandlerContext() as a:
+        with ErrorHandlerContext():
             data = getattr(session, resource).post(
                 data=data,
             )
@@ -113,7 +112,7 @@ class Api(object):
 
     def patch_resource(self, settings, resource, id, data):
         session = self.get_session(settings)
-        with ErrorHandlerContext() as a:
+        with ErrorHandlerContext():
             data = getattr(session, resource)(id).patch(
                 data=data,
             )
@@ -130,7 +129,7 @@ class Api(object):
             url_dict = urlparse.parse_qsl(filters)
             attrs.extend(url_dict)
         attrs_dict = dict(attrs)
-        with ErrorHandlerContext() as a:
+        with ErrorHandlerContext():
             return getattr(session, resource).get(**dict(attrs_dict))
 
     def get_schema(self, settings, resource=None, filters=False,):
@@ -369,7 +368,6 @@ def show(arguments, settings):
         # file output
         limit_requested = 0
 
-
     fields_r = arguments.get('--fields')
     fields_requested_args = fields_r.split(',') if fields_r else []
     fields_requested = OrderedDict()
@@ -466,7 +464,7 @@ def create(arguments, settings,):
             data = sys.stdin.read().strip()
         else:
             data = open(fname).read().strip()
-    ret = Api().create_resource(settings, resource, data=json.loads(data))
+    Api().create_resource(settings, resource, data=json.loads(data))
 
 
 def do_main(arguments,):

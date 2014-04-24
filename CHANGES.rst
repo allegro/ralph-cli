@@ -1,5 +1,11 @@
 Change Log
 ----------
+2.1.2
+~~~~~
+
+* Fixed bug where data were truncated to 20 characters.
+
+* Fixed bug where column output was not always correct.
 
 2.1.1
 ~~~~~

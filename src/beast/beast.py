@@ -98,7 +98,6 @@ class Api(object):
         session = slumber.API(
             '%(url)s/api/v%(version)s/' % dict(url=url, version=version),
             session=session,
-            #    auth=TastypieApikeyAuth(username, api_key)
         )
         return session
 

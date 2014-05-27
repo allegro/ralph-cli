@@ -1,3 +1,5 @@
+The following HOWTO assumes that you've successfully installed and configured ralph beast according to the instructions available `here <./install.rst>`_.
+
 ==========
 How to use
 ==========

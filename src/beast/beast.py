@@ -94,7 +94,6 @@ class Api(object):
         api_key = settings.get('api_key')
         session = requests.session(verify=False)
         session.auth = TastypieApikeyAuth(username, api_key)
-        session.headers['Content-Type'] = 'application/json'
         session = slumber.API(
             '%(url)s/api/v%(version)s/' % dict(url=url, version=version),
             session=session,

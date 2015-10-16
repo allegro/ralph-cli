@@ -1,5 +1,11 @@
 Change Log
 ----------
+
+2.1.3
+~~~~~
+
+* Api compatibility fixed with the latest Ralph.
+
 2.1.2
 ~~~~~
 

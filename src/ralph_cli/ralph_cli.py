@@ -41,7 +41,7 @@ import slumber
 from . import VERSION
 
 SHOW_VERBOSE = True
-
+DEBUG = False
 
 class ErrorHandlerContext(object):
 
@@ -158,6 +158,9 @@ class Api(object):
 
 class Content(object):
 
+    def __str__(self):
+        return json.dumps(self.api_data, indent=4)
+        
     def __init__(self, api_data, fields_requested):
         self.api_data = api_data
         self.fields_requested = fields_requested
@@ -166,11 +169,10 @@ class Content(object):
         return [self.row_repr(row) for row in self.api_data]
 
     def field_repr(self, field, field_name):
-        return unicode(field)
         rep = ''
         if isinstance(field, basestring):
-            if '/api/v0.9/' in field:
-                rep = unicode(field.replace('/api/v0.9/', ''))
+            if '/api/' in field:
+                rep = unicode(field.replace('/api/', ''))
             else:
                 rep = unicode(field)
         elif isinstance(field, bool):
@@ -192,10 +194,10 @@ class Content(object):
             return 'dict'
         elif field is None:
             rep = ''
-        elif isinstance(field, list):
-            rep = '#'.join(
-                [self.field_repr(subfield, field_name) for subfield in field]
-            )
+        #elif isinstance(field, list):
+        #    rep = '#'.join(
+        #        [self.field_repr(subfield, field_name) for subfield in field]
+        #    )
         else:
             rep = unicode(field)
         return rep
@@ -411,6 +413,8 @@ def list(arguments, settings, tolist):
 
         api_data = response.get('results', [])
         content = Content(api_data, fields_requested)
+        if DEBUG:
+            print(content)
         rows, columns = get_terminal_size()
         max_width = int(arguments.get('--width') or columns)
         trim = arguments.get('--trim')
@@ -467,8 +471,9 @@ def create(arguments, settings,):
 
 
 def do_main(arguments,):
-    debug = arguments.get('--debug')
-    if debug and SHOW_VERBOSE:
+    global DEBUG
+    DEBUG = arguments.get('--debug')
+    if DEBUG and SHOW_VERBOSE:
         stopwatch_start = time.time()
     settings = dict()
     config_file = os.path.abspath("config")
@@ -504,7 +509,7 @@ def do_main(arguments,):
         update(arguments, settings)
     elif arguments.get('create'):
         create(arguments, settings)
-    if debug and SHOW_VERBOSE:
+    if DEBUG and SHOW_VERBOSE:
         cprint(
             '\nTotal time: %s sec\n' % round(time.time() - stopwatch_start, 2),
             'LCYAN',

@@ -16,17 +16,17 @@ with open(os.path.join(current_dir, 'README.rst')) as readme_file:
         long_description = readme_file.read() + '\n' + changes_file.read()
 
 sys.path.insert(0, current_dir + os.sep + 'src')
-from beast import VERSION
+from ralph_cli import VERSION
 release = ".".join(str(num) for num in VERSION)
 
 setup(
-    name='ralph_beast',
+    name='ralph_cli',
     version=release,
     author='Grupa Allegro Sp. z o.o. and Contributors',
-    author_email='it-beast-dev@allegro.pl',
-    description="Beast, ralph API client",
+    author_email='pylabs@allegro.pl',
+    description="Official Ralph API client",
     long_description=long_description,
-    url='http://github.com/allegro/ralph_beast',
+    url='http://github.com/allegro/ralph_cli',
     keywords='',
     platforms=['any'],
     license='Apache Software License v2.0',
@@ -34,7 +34,7 @@ setup(
     include_package_data=True,
     package_dir={'': 'src'},
     zip_safe=False,  # because templates are loaded from file path
-    console=['src/beast/beast.py'],
+    console=['src/ralph_cli/ralph_cli.py'],
     install_requires=[
         'requests==0.14.2',
         'slumber',
@@ -43,7 +43,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-        'beast = beast.beast:main',
+        'ralph-cli = ralph_cli.ralph_cli:main',
         ],
     },
     options={

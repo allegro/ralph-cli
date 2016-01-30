@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Beast is convenient Ralph API commandline client.
-Documentation on https://github.com/allegro/ralph_beast/
-Example usage $ ~/beast show
+"""Ralph CLI is convenient Ralph 3 API commandline client.
+Documentation on https://github.com/allegro/ralph-cli/
+Example usage $ ~/ralph-cli list
 
 Usage:
- beast show
- beast show <resource> [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--csv] [--trim] [--width=max_width] [--silent] [--limit=limit]
- beast update <resource> <id> <fields> <fields_values>
- beast create <resource> [--data=json_data] [--file=path_to_the_json_file]
- beast -h | --help
- beast --version
+ ralph-cli list 
+ ralph-cli [data-center-assets|back-office-assets|racks|services] [list|update|create] [--debug] [--schema] [--fields=fields] [--filter=field_filter] [--csv] [--trim] [--width=max_width] [--silent] [--limit=limit]
+ ralph-cli -h | --help
+ ralph-cli --version
 
 """
 
@@ -73,8 +71,8 @@ class TastypieApikeyAuth(AuthBase):
         self.apikey = apikey
 
     def __call__(self, r):
-        r.headers['Authorization'] = "ApiKey {0}:{1}".format(
-            self.username, self.apikey)
+        r.headers['Authorization'] = "Token {0}".format(
+            self.apikey)
         return r
 
 
@@ -95,7 +93,7 @@ class Api(object):
         session = requests.session(verify=False)
         session.auth = TastypieApikeyAuth(username, api_key)
         session = slumber.API(
-            '%(url)s/api/v%(version)s/' % dict(url=url, version=version),
+            '%(url)s/api/' % dict(url=url),
             session=session,
         )
         return session
@@ -131,6 +129,8 @@ class Api(object):
             return getattr(session, resource).get(**dict(attrs_dict))
 
     def get_schema(self, settings, resource=None, filters=False,):
+        print("Not implemented yet!")
+        return
         rows, columns = get_terminal_size()
         if not resource:
             cprint("-" * columns, 'GREEN')
@@ -166,6 +166,7 @@ class Content(object):
         return [self.row_repr(row) for row in self.api_data]
 
     def field_repr(self, field, field_name):
+        return unicode(field)
         rep = ''
         if isinstance(field, basestring):
             if '/api/v0.9/' in field:
@@ -351,13 +352,12 @@ class CSVWriter(Writer):
         cprint(self._write(row_p))
 
 
-def show(arguments, settings):
+def list(arguments, settings, tolist):
     silent = arguments.get('--silent')
     if silent:
         global SHOW_VERBOSE
         SHOW_VERBOSE = False
-
-    resource = arguments.get('<resource>', '')
+    resource = tolist
     limit_requested = arguments.get('--limit')
     if sys.stdout.isatty() and (limit_requested is None):
         # default limit for console is 20
@@ -400,15 +400,16 @@ def show(arguments, settings):
             offset=offset,
             filters=arguments.get('--filter'),
         )
-        total_count = response['meta']['total_count']
-        limit = response['meta']['limit']
-        next_link = response['meta'].get('next')
+        total_count = response['count']
+        next_link = response.get('next')
+        limit = 50
+        #limit = next_link(responset']
         if not first and not next_link:
             finished = True
             break
-        offset += (int(limit) + 1)
+        offset += 50 # (int(limit) + 1)
 
-        api_data = response.get('objects', [])
+        api_data = response.get('results', [])
         content = Content(api_data, fields_requested)
         rows, columns = get_terminal_size()
         max_width = int(arguments.get('--width') or columns)
@@ -435,7 +436,7 @@ def show(arguments, settings):
                 writer.write_row(row)
             except KeyError as e:
                 print_err(
-                    "\n\rCan't find column: %s. Type bast show [resource] --schema to show available columns." % e.args[0])
+                    "\n\rCan't find column: %s. Type ralph-cli list [resource] --schema to show available columns." % e.args[0])
                 sys.exit(2)
 
 
@@ -471,7 +472,7 @@ def do_main(arguments,):
         stopwatch_start = time.time()
     settings = dict()
     config_file = os.path.abspath("config")
-    additional_config_file = os.path.expanduser("~/.beast/config")
+    additional_config_file = os.path.expanduser("~/.ralph_cli/config")
     try:
         execfile(config_file, settings)
     except IOError:
@@ -491,10 +492,15 @@ def do_main(arguments,):
             ','.join(missing_options)
         )
         sys.exit(5)
-
-    if arguments.get('show'):
-        show(arguments, settings)
-    elif arguments.get('update'):
+    objects = ['back-office-assets', 'data-center-assets', 'racks','services'] 
+    for i in objects:
+        if arguments.get(i):
+            list(arguments, settings, i)
+            return
+    if arguments.get('list'):
+        list(arguments, settings, None)
+        return
+    if arguments.get('update'):
         update(arguments, settings)
     elif arguments.get('create'):
         create(arguments, settings)

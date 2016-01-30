@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Beast - Ralph API Client documentation build configuration file, created by
+# Ralph API Client documentation build configuration file, created by
 # sphinx-quickstart on Tue Mar 26 12:38:59 2013.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -40,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Beast - Ralph API Client'
-copyright = u'2013, Allegro Group'
+project = u'Ralph CLI'
+copyright = u'2016, Allegro Group'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Beast-RalphAPIClientdoc'
+htmlhelp_basename = 'RalphAPIClientdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -183,7 +183,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Beast-RalphAPIClient.tex', u'Beast - Ralph API Client Documentation',
+  ('index', 'RalphAPIClient.tex', u'Ralph API Client Documentation',
    u'Allegro Group', 'manual'),
 ]
 
@@ -213,7 +213,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'beast-ralphapiclient', u'Beast - Ralph API Client Documentation',
+    ('index', 'ralph-cli-ralphapiclient', u'Beast - Ralph API Client Documentation',
      [u'Allegro Group'], 1)
 ]
 
@@ -227,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Beast-RalphAPIClient', u'Beast - Ralph API Client Documentation',
-   u'Allegro Group', 'Beast-RalphAPIClient',
+  ('index', 'RalphAPIClient', u'Ralph API Client Documentation',
+   u'Allegro Group', 'RalphAPIClient',
    'One line description of project.', 'Miscellaneous'),
 ]
 

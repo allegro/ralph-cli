@@ -11,8 +11,8 @@ Docs
 
 - `how to install`_
 
-.. _how to install: https://github.com/allegro/ralph_cli/blob/master/doc/install.rst
+.. _how to install: https://github.com/allegro/ralph-cli/blob/develop/doc/install.rst
 
 - howto_
 
-.. _howto: https://github.com/allegro/ralph_cli/blob/master/doc/howto.rst
+.. _howto: https://github.com/allegro/ralph-cli/blob/develop/doc/howto.rst

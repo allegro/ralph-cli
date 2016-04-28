@@ -1,0 +1,11 @@
+{
+	"ImportPath": "github.com/quamilek/ralph-scan",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v62",
+	"Deps": [
+		{
+			"ImportPath": "github.com/jawher/mow.cli",
+			"Rev": "772320464101e904cd51198160eb4d489be9cc49"
+		}
+	]
+}

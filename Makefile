@@ -1,19 +1,17 @@
-#!/usr/bin/make -f
+# This Makefile is meant only for cross-compilation scenario, where we want to get
+# binaries for all supported platforms at once.
+# For other cases, use standard Go tooling (i.e., go build, go install).
 
-SHELL=/bin/bash
+PACKAGE_NAME := github.com/allegro/ralph-cli
 
 deps:
-	godep restore
+	glide install
 
-build: deps golang-crosscompile
-	source golang-crosscompile/crosscompile.bash; \
-	go-darwin-amd64 build -o dist/ralph-scan-Darwin-x86_64; \
-	go-linux-386 build -o dist/ralph-scan-Linux-i386; \
-	go-linux-amd64 build -o dist/ralph-scan-Linux-x86_64; \
-	go-windows-386 build -o dist/ralph-scan.exe
+build-all: deps
+	@echo "Building ralph-cli binaries for Darwin/Linux/Windows (64-bit)..."
+	env GOOS=darwin GOARCH=amd64 go build $(PACKAGE_NAME) -o dist/ralph-cli-Darwin-x86_64
+	env GOOS=linux GOARCH=amd64 go build $(PACKAGE_NAME) -o dist/ralph-cli-Linux-x86_64
+	env GOOS=windows GOARCH=amd64 go build $(PACKAGE_NAME) -o dist/ralph-cli.exe
 
-golang-crosscompile:
-	git clone https://github.com/davecheney/golang-crosscompile.git
-
-install:
-	deps
+clean:
+	rm -rf dist

@@ -17,8 +17,8 @@ func EditScript(s Script) error {
 
 // CommitScript commits given Script (along with its Manifest) to ScriptRepo.
 // Such script should be present in ~/.ralph-cli dir.
-func CommitScript(s Script, m Manifest) (commitId string, e error) {
-	return "dummyCommitId", nil
+func CommitScript(s Script, m Manifest) (commitID string, e error) {
+	return "dummyCommitID", nil
 }
 
 // CreateManifest creates an empty template for Manifest file associated with Script

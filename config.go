@@ -1,6 +1,6 @@
 package main
 
-// Configuration for ralph-cli.
+// Config holds the configuration for ralph-cli.
 type Config struct {
 	Debug     bool
 	LogOutput string // e.g. logstash

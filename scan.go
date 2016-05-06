@@ -69,7 +69,7 @@ func (ipnet IPNet) Scan() (ScanResult, error) {
 	return ScanResult("I'm just a dummy scan result."), nil
 }
 
-// XXX Only for demonstration.
+// PerformDummyScan is a function meant only for demonstration purposes - it will be removed soon.
 func PerformDummyScan(s *string) {
 	ip := NewIP(*s)
 	result, _ := ip.Scan()

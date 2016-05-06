@@ -1,17 +1,23 @@
-# This Makefile is meant only for cross-compilation scenario, where we want to get
-# binaries for all supported platforms at once.
-# For other cases, use standard Go tooling (i.e., go build, go install).
+# This Makefile is meant only for releasing binaries hosted on GitHub
+# For other cases, use standard Go tooling (i.e., go build, go install)
+# and Glide (https://github.com/Masterminds/glide).
 
-PACKAGE_NAME := github.com/allegro/ralph-cli
+VERSION_FROM_GIT_TAG := `git describe --tags --abbrev=0 | sed 's/^v//'`
 
 deps:
 	glide install
 
-build-all: deps
-	@echo "Building ralph-cli binaries for Darwin/Linux/Windows (64-bit)..."
-	env GOOS=darwin GOARCH=amd64 go build -o dist/ralph-cli-Darwin-x86_64 $(PACKAGE_NAME)
-	env GOOS=linux GOARCH=amd64 go build -o dist/ralph-cli-Linux-x86_64 $(PACKAGE_NAME)
-	env GOOS=windows GOARCH=amd64 go build -o dist/ralph-cli.exe $(PACKAGE_NAME)
+release: clean deps
+	rm -rf dist
+	go get github.com/laher/goxc
+	goxc -wc -pv=$(VERSION_FROM_GIT_TAG)
+	@echo "Releasing binaries for supported platforms/OSs with version: $(VERSION_FROM_GIT_TAG)..."
+	goxc -tasks-=go-install,go-vet,go-test
+	@echo "Adding commit with updated '.goxc.json' file."
+	git add .goxc.json
+	git commit -m "Bumped PackageVersion in '.goxc.json'."
+	@echo "Done."
+	@echo "Remember to manually push release commits/tag to origin/master (with 'git push --follow-tags origin master')."
 
 clean:
 	rm -rf dist

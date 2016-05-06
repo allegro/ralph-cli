@@ -29,3 +29,4 @@ _testmain.go
 vendor
 dist
 ralph-cli
+.goxc.local.json

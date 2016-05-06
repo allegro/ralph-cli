@@ -1,0 +1,17 @@
+{
+	"ArtifactsDest": "dist",
+	"Tasks": [
+		"default",
+		"publish-github"
+	],
+	"BuildConstraints": "linux,amd64 darwin,amd64",
+	"PackageVersion": "0.0.0",
+	"TaskSettings": {
+		"publish-github": {
+			"body": "",
+			"owner": "allegro",
+			"repository": "ralph-cli"
+		}
+	},
+	"ConfigVersion": "0.9"
+}

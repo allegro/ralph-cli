@@ -27,7 +27,7 @@ func (c *Client) Post(data interface{}) error {
 	case PhysicalHost:
 		// do something with the data
 		err = nil
-	case VmHost:
+	case VMHost:
 		// do something with the data
 		err = nil
 	case CloudHost:

@@ -1,54 +1,18 @@
 # ralph-cli
 
-Commandline interface for Ralph system.
+[![Build Status](https://travis-ci.org/allegro/ralph-cli.svg?branch=travis-wip)](https://travis-ci.org/allegro/ralph-cli)
+[![Coverage Status](https://coveralls.io/repos/github/allegro/ralph-cli/badge.svg?branch=travis-wip)](https://coveralls.io/github/allegro/ralph-cli?branch=travis-wip)
 
-[![Build Status](https://travis-ci.org/quamilek/ralph-scan.svg?branch=master)](https://travis-ci.org/quamilek/ralph-scan)
-[![Coverage Status](https://coveralls.io/repos/github/quamilek/ralph-scan/badge.svg?branch=travis)](https://coveralls.io/github/quamilek/ralph-scan?branch=travis)
+A command-line interface for Ralph.
 
+`ralph-cli` uses [Glide](https://github.com/Masterminds/glide) for
+managing its dependencies, so assuming that you already have it
+installed on your system, all you have to do is `glide install` and
+then `go build` (or `go install`).
 
-```
-$ ralph-scan -h
+BTW, this repo should be considered as "work in progress", so stay tuned!
 
-Usage: ralph-scan [IP... [--components] [--plugins] [--dry-run]] COMMAND [arg...]
+## License
 
-Easy way to scan your devices
-
-Arguments:
-  IP=[]        IP or HOSTNAME device to scan
-
-Options:
-  --components=[]   List components to scan. Available components:
-                    CPU, RAM, DISK, ETHERNETS, DISK-SHARES ($RALPH_SCAN_COMPONENTS)
-  --plugins=[]           Ralph scan plugins to run. Available plugins: PLUGIN1, PLUGIN2 ($RALPH_SCAN_PLUGINS)
-  --dry-run=false        Only show scan results, not send to Ralph ($RALPH_SCAN_DRY_RUN)
-  --device-template=""   Ready to use plugin and components pack to scan typical
-                         devices. Available templates: IDRAC, ILO, XEN  ($RALPH_SCAN_DEVICE_TEMPLATE)
-  -v, --version    Show the version and exit
-
-Commands:
-  generate-config   Generate Ralph-Scan config in ~/.ralph-scan/config.yml
-
-Run 'ralph-scan COMMAND --help' for more information on a command.
-```
-
-## create config file
-```
-./ralph-scan generate-config -h
-
-Usage: ralph-scan generate-config
-
-Generate Ralph-Scan config in ~/.ralph-scan/config.yml
-```
-
-## example config file
-
-```
-global:
-  auth:
-    username: ralph
-    password: ralph
-plugins:
-  - ILO
-  - IDRAC
-  - IPMI
-```
+`ralph-cli` is licensed under the [Apache License, v2.0](http://www.apache.org/licenses/LICENSE-2.0).
+Copyright (c) 2016 [Allegro Group](http://allegrogroup.com)

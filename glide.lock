@@ -1,0 +1,21 @@
+hash: 839c891d026ea9feda4d2562bc515d3b6dcceae4b1756580fd8d1741544e9658
+updated: 2016-05-01T23:32:58.409927534+02:00
+imports:
+- name: github.com/jawher/mow.cli
+  version: 772320464101e904cd51198160eb4d489be9cc49
+- name: github.com/labstack/gommon
+  version: 2e62be24dbb1ceb226554aaccfe5a89ec71043b3
+  subpackages:
+  - log
+  - color
+- name: github.com/mattn/go-colorable
+  version: bc69d6cebca8dd5675346a34a1c545b67dc74d5e
+- name: github.com/mattn/go-isatty
+  version: 56b76bdf51f7708750eac80fa38b952bb9f32639
+- name: github.com/valyala/fasttemplate
+  version: 3b874956e03f1636d171bda64b130f9135f42cff
+- name: golang.org/x/sys
+  version: b776ec39b3e54652e09028aaaaac9757f4f8211a
+  subpackages:
+  - unix
+devImports: []

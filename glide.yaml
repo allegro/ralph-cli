@@ -1,0 +1,6 @@
+package: github.com/allegro/ralph-cli
+import:
+- package: github.com/jawher/mow.cli
+- package: github.com/labstack/gommon
+  subpackages:
+  - log

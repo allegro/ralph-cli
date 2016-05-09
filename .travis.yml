@@ -1,0 +1,22 @@
+language: go
+
+go:
+  - 1.6
+  - tip
+
+before_install:
+  - go get github.com/Masterminds/glide
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/golang/lint/golint
+  - go get github.com/mattn/goveralls
+
+install:
+  - glide install
+
+script:
+  - golint
+  - go vet -x
+  - go test -v -coverprofile=main.coverprofile
+
+after_script:
+  - goveralls -coverprofile=main.coverprofile -service travis-ci

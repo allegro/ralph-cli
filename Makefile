@@ -1,19 +1,23 @@
-#!/usr/bin/make -f
+# This Makefile is meant only for releasing binaries hosted on GitHub
+# For other cases, use standard Go tooling (i.e., go build, go install)
+# and Glide (https://github.com/Masterminds/glide).
 
-SHELL=/bin/bash
+VERSION_FROM_GIT_TAG := `git describe --tags --abbrev=0 | sed 's/^v//'`
 
 deps:
-	godep restore
+	glide install
 
-build: deps golang-crosscompile
-	source golang-crosscompile/crosscompile.bash; \
-	go-darwin-amd64 build -o dist/ralph-scan-Darwin-x86_64; \
-	go-linux-386 build -o dist/ralph-scan-Linux-i386; \
-	go-linux-amd64 build -o dist/ralph-scan-Linux-x86_64; \
-	go-windows-386 build -o dist/ralph-scan.exe
+release: clean deps
+	rm -rf dist
+	go get github.com/laher/goxc
+	goxc -wc -pv=$(VERSION_FROM_GIT_TAG)
+	@echo "Releasing binaries for supported platforms/OSs with version: $(VERSION_FROM_GIT_TAG)..."
+	goxc -tasks-=go-install,go-vet,go-test
+	@echo "Adding commit with updated '.goxc.json' file."
+	git add .goxc.json
+	git commit -m "Bumped PackageVersion in '.goxc.json'."
+	@echo "Done."
+	@echo "Remember to manually push release commits/tag to origin/master (with 'git push --follow-tags origin master')."
 
-golang-crosscompile:
-	git clone https://github.com/davecheney/golang-crosscompile.git
-
-install:
-	deps
+clean:
+	rm -rf dist

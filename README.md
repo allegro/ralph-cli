@@ -1,7 +1,7 @@
 # ralph-cli
 
-[![Build Status](https://travis-ci.org/allegro/ralph-cli.svg?branch=travis-wip)](https://travis-ci.org/allegro/ralph-cli)
-[![Coverage Status](https://coveralls.io/repos/github/allegro/ralph-cli/badge.svg?branch=travis-wip)](https://coveralls.io/github/allegro/ralph-cli?branch=travis-wip)
+[![Build Status](https://travis-ci.org/allegro/ralph-cli.svg?branch=develop)](https://travis-ci.org/allegro/ralph-cli)
+[![Coverage Status](https://coveralls.io/repos/github/allegro/ralph-cli/badge.svg?branch=develop)](https://coveralls.io/github/allegro/ralph-cli?branch=develop)
 
 A command-line interface for Ralph.
 

@@ -17,6 +17,7 @@ var APIEndpoints = map[string]string{
 	"CloudHost":         "cloud-hosts",
 	"EthernetComponent": "ethernets",
 	"BaseObject":        "base-objects",
+	"IPAddress":         "ipaddresses", // only for ExcludeMgmt's purposes!
 	// ...and so on for other data types defined for Ralph
 }
 

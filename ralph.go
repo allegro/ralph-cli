@@ -161,8 +161,50 @@ func (e EthernetComponent) String() string {
 		e.ID, e.BaseObject.ID, e.MACAddress, e.Label, e.Speed, e.Model)
 }
 
-// EthernetComponentList represents the shape of data returned by Ralph for
-// EthernetComponent endpoint.
+// ExcludeMgmt filters eths by excluding EthernetComponents associated with given IP
+// address, but only when such address is a management one.
+// This function should be considered as a temporary solution, and will be removed once
+// similar functionality will be implemented in Ralph's API.
+func ExcludeMgmt(eths []*EthernetComponent, ip Addr, c *Client) ([]*EthernetComponent, error) {
+
+	type IPAddress struct {
+		IsMgmt   bool `json:"is_management"`
+		Ethernet *EthernetComponent
+	}
+
+	type IPAddressList struct {
+		Count   int
+		Results []IPAddress
+	}
+
+	var ethsFiltered []*EthernetComponent
+
+	q := fmt.Sprintf("address=%s", ip)
+	rawBody, err := c.GetFromRalph(APIEndpoints["IPAddress"], q)
+	if err != nil {
+		return nil, err
+	}
+	var addrs IPAddressList
+	if err := json.Unmarshal(rawBody, &addrs); err != nil {
+		return nil, fmt.Errorf("error while unmarshaling IPAddress: %v", err)
+	}
+	switch {
+	case addrs.Count > 1:
+		// This shouldn't happen...
+		return nil, fmt.Errorf("more than one (%d) record for IPAddress %s", addrs.Count, ip)
+	case addrs.Count == 0 || !addrs.Results[0].IsMgmt:
+		return eths, nil
+	default:
+		for _, eth := range eths {
+			if eth.ID != addrs.Results[0].Ethernet.ID {
+				ethsFiltered = append(ethsFiltered, eth)
+			}
+		}
+	}
+	return ethsFiltered, nil
+}
+
+// EthernetComponentList represents the shape of data returned by Ralph for EthernetComponent endpoint.
 type EthernetComponentList struct {
 	Count   int
 	Results []EthernetComponent

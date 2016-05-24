@@ -44,6 +44,9 @@ func PerformScan(addrStr string, scripts []string, dryRun bool) {
 		return
 	}
 	oldEths, err := baseObj.GetEthernetComponents(client)
+	// TODO(xor-xor): ExcludeMgmt should be removed when similar functionality will be implemented
+	// in Ralph's API. Therefore, it should be considered as a temporary solution.
+	oldEths, err = ExcludeMgmt(oldEths, addr, client)
 	if err != nil {
 		fmt.Println(err)
 		return

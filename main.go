@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,6 +13,12 @@ import (
 func main() {
 	var w io.Writer
 	log.SetFlags(0)
+
+	err := PrepareCfgDir()
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	cfg, _ := GetConfig()
 	switch cfg.LogOutput {
 	case "logstash":
@@ -23,11 +30,19 @@ func main() {
 	gommonlog.SetOutput(w)
 
 	app := cli.App("ralph-cli", "Command-line interface for Ralph")
-	app.Spec = "IP"
-	var ip = app.StringArg("IP", "", "IP address to scan")
-	app.Action = func() {
-		PerformDummyScan(ip)
-	}
+
+	app.Command("scan", "Perform scan of a given host/network", func(cmd *cli.Cmd) {
+		addr := cmd.StringArg("ADDR", "", "Address of a host to scan (IP or FQDN)")
+		scripts := cmd.StringsOpt("scripts", []string{"idrac.py"}, "Scripts to be executed")
+		dryRun := cmd.BoolOpt("dry-run", false, "Don't write anything")
+
+		cmd.Spec = "ADDR [--scripts=<scripts>] [--dry-run]"
+
+		cmd.Action = func() {
+			PerformScan(*addr, *scripts, *dryRun)
+		}
+	})
+
 	app.Version("v version", "0.1.0")
 	app.Run(os.Args)
 }

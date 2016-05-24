@@ -51,7 +51,7 @@ type Processor struct {
 }
 
 func (p Processor) String() string {
-	return fmt.Sprintf("Processor{name: %s, cores: %s, speed: %s}",
+	return fmt.Sprintf("Processor{name: %s, cores: %d, speed: %d}",
 		p.Name, p.Cores, p.Speed)
 }
 
@@ -63,7 +63,7 @@ type Memory struct {
 }
 
 func (m Memory) String() string {
-	return fmt.Sprintf("Memory{name: %s, size: %s, speed: %s}", m.Name, m.Size, m.Speed)
+	return fmt.Sprintf("Memory{name: %s, size: %d, speed: %d}", m.Name, m.Size, m.Speed)
 }
 
 // Disk represents a single hard drive (be it SSD or "normal" one) on a given host.

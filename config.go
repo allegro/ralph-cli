@@ -52,19 +52,14 @@ func PrepareCfgDir() error {
 // createCfgDir is a helper function for creating ~/.ralph-cli dir (used by
 // PrepareCfgDir).
 func createCfgDir(loc string) error {
-	loc, err := GetCfgDirLocation()
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(loc); os.IsNotExist(err) {
+	var err error
+	_, err = os.Stat(loc)
+	if os.IsNotExist(err) {
 		mode := os.FileMode(int(0755))
-		err := os.MkdirAll(filepath.Join(loc, "scripts"), mode)
+		err = os.MkdirAll(filepath.Join(loc, "scripts"), mode)
 		// Add other subdirs to be created here if needed.
-		return err
-	} else {
-		return err
 	}
-	return nil
+	return err
 }
 
 // GetConfig loads ralph-cli configuration from ~/.ralph-cli dir.

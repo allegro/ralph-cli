@@ -188,17 +188,13 @@ func ExcludeMgmt(eths []*EthernetComponent, ip Addr, c *Client) ([]*EthernetComp
 	if err := json.Unmarshal(rawBody, &addrs); err != nil {
 		return nil, fmt.Errorf("error while unmarshaling IPAddress: %v", err)
 	}
-	switch {
-	case addrs.Count > 1:
-		// This shouldn't happen...
-		return nil, fmt.Errorf("more than one (%d) record for IPAddress %s", addrs.Count, ip)
-	case addrs.Count == 0 || !addrs.Results[0].IsMgmt:
+	// IP addresses are unique in Ralph, so there's no need to check for addrs.Count > 1.
+	if addrs.Count == 0 || !addrs.Results[0].IsMgmt {
 		return eths, nil
-	default:
-		for _, eth := range eths {
-			if eth.ID != addrs.Results[0].Ethernet.ID {
-				ethsFiltered = append(ethsFiltered, eth)
-			}
+	}
+	for _, eth := range eths {
+		if eth.ID != addrs.Results[0].Ethernet.ID {
+			ethsFiltered = append(ethsFiltered, eth)
 		}
 	}
 	return ethsFiltered, nil

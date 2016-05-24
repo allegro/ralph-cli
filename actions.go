@@ -11,7 +11,7 @@ import (
 // and that only MAC addresses will be created/updated/deleted in Ralph.
 func PerformScan(addrStr string, scripts []string, dryRun bool) {
 	if dryRun {
-		fmt.Println("Running in dry-run mode, no changes will be saved to Ralph.")
+		fmt.Println("Running in dry-run mode, no changes will be saved in Ralph.")
 	}
 	script, err := NewScript(scripts[0])
 	if err != nil {

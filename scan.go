@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
 )
 
 // Script represents a single, user script which performs the actual scan
-// of an IP or network.
+// of an address (IP/network or FQDN).
 type Script struct {
 	Name      string
 	LocalPath string
@@ -14,64 +17,56 @@ type Script struct {
 	Manifest  *Manifest
 }
 
-// ScanResult holds validated output of a scan script.
-type ScanResult string
-
-// IP represents a single IP address (it's a wrapper around net.IP).
-type IP net.IP
-
-// IPNet represents IP address of a network (it's a wrapper around net.IPNet).
-type IPNet net.IPNet
-
-// ScanObject implements scanning of IP addresses or networks.
-type ScanObject interface {
-	Scan() (ScanResult, error)
-}
-
-// Run launches a given Script and return its output as ScanResult.
-func (s Script) Run() (ScanResult, error) {
-	output := ScanResult("dummy output")
-	err := output.validate()
+// NewScript creates a new instance of Script given as string and performs some basic
+// validation of a file associated with it (e.g., is it executable).
+func NewScript(fileName string) (Script, error) {
+	loc, err := GetCfgDirLocation()
 	if err != nil {
-		return "", err
+		return Script{}, err
 	}
-
-	return output, nil
-}
-
-// validates ScanResult against some schema (to be added later).
-func (sr ScanResult) validate() error {
-	return nil
-}
-
-// NewIP creates a new instance of IP address.
-func NewIP(s string) IP {
-	return IP(net.ParseIP(s))
-}
-
-// NewIPNet creates a new instance of IPNet (IP address of a network).
-func NewIPNet(s string) (*IPNet, error) {
-	_, ipnet, err := net.ParseCIDR(s)
+	path := filepath.Join(loc, "scripts", fileName)
+	finfo, err := os.Stat(path)
 	if err != nil {
-		return nil, err
+		return Script{}, err
 	}
-	NewIPNet := IPNet(*ipnet)
-	return &NewIPNet, nil
+	exec := finfo.Mode() & 0100
+	if exec == 0 {
+		return Script{}, fmt.Errorf("file %s is not executable for the owner", path)
+	}
+	return Script{
+		Name:      fileName,
+		LocalPath: path,
+		RepoURL:   "",
+		Manifest:  nil,
+	}, nil
 }
 
-// Scan performs a scan of a given IP address.
-func (ip IP) Scan() (ScanResult, error) {
-	return ScanResult("I'm just a dummy scan result."), nil
+// Scan performs a scan of a given address (IP or FQDN).
+func (s Script) Run(addr Addr) (*ScanResult, error) {
+	var res ScanResult
+	var err error
+	cmd := exec.Command(s.LocalPath, string(addr))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &res, fmt.Errorf("error running script %s: %s\nstderr: %s",
+			s.LocalPath, err, cmd.Stderr)
+	}
+	err = json.Unmarshal(output, &res)
+	return &res, err
 }
 
-// Scan performs a scan of a given network.
-func (ipnet IPNet) Scan() (ScanResult, error) {
-	return ScanResult("I'm just a dummy scan result."), nil
+// ScanResult holds parsed output of a scan script.
+type ScanResult struct {
+	// TODO(xor-xor): Consider adding here a field holding an ADDR being scanned.
+	MACAddresses []MACAddress `json:"mac_addresses"`
+	Disks        []Disk
+	Memory       []Memory
+	Model        string `json:"model_name"`
+	Processors   []Processor
+	SN           string `json:"serial_number"`
 }
 
-// PerformDummyScan is a function meant only for demonstration purposes - it will be removed soon.
-func PerformDummyScan(s *string) {
-	ip := NewIP(*s)
-	result, _ := ip.Scan()
-	fmt.Printf("%s\n", result)
+func (sr ScanResult) String() string {
+	return fmt.Sprintf("MACAddresses: %s\nDisks: %s\nMemory: %s\nModel: %s\nProcessors: %s\nSerial Number: %s\n",
+		sr.MACAddresses, sr.Disks, sr.Memory, sr.Model, sr.Processors, sr.SN)
 }

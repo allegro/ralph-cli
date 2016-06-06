@@ -12,6 +12,12 @@ then `go build` (or `go install`).
 
 BTW, this repo should be considered as "work in progress", so stay tuned!
 
+## Relation to "beast" (old ralph-cli)
+
+This repo used to be inhabited by `beast` - an older version of Ralph's
+API command-line client, written in Python. It is no longer maintained,
+but you can still find its code on the `beast` branch.
+
 ## License
 
 `ralph-cli` is licensed under the [Apache License, v2.0](http://www.apache.org/licenses/LICENSE-2.0).

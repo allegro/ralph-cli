@@ -9,3 +9,4 @@ import:
   - checkers
 - package: github.com/juju/loggo
 - package: gopkg.in/check.v1
+- package: gopkg.in/yaml.v2

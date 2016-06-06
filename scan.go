@@ -17,14 +17,14 @@ type Script struct {
 	Manifest  *Manifest
 }
 
-// NewScript creates a new instance of Script given as string and performs some basic
+var execCommand = exec.Command
+
+// NewScript creates a new instance of Script given as fileName and performs some basic
 // validation of a file associated with it (e.g., is it executable).
-func NewScript(fileName string) (Script, error) {
-	loc, err := GetCfgDirLocation()
-	if err != nil {
-		return Script{}, err
-	}
-	path := filepath.Join(loc, "scripts", fileName)
+// Script should be located in "scripts" subdir of cfgDir. When cfgDir is given as an
+// empty string, then "~/.ralph-cli/scripts" will be searched.
+func NewScript(fileName, cfgDir string) (Script, error) {
+	path := filepath.Join(cfgDir, "scripts", fileName)
 	finfo, err := os.Stat(path)
 	if err != nil {
 		return Script{}, err
@@ -41,11 +41,12 @@ func NewScript(fileName string) (Script, error) {
 	}, nil
 }
 
-// Scan performs a scan of a given address (IP or FQDN).
+// Run launches a scan Script on a given address (at this moment, only IPs are fully
+// supported).
 func (s Script) Run(addr Addr) (*ScanResult, error) {
 	var res ScanResult
 	var err error
-	cmd := exec.Command(s.LocalPath, string(addr))
+	cmd := execCommand(s.LocalPath, string(addr))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return &res, fmt.Errorf("error running script %s: %s\nstderr: %s",
@@ -61,9 +62,10 @@ type ScanResult struct {
 	MACAddresses []MACAddress `json:"mac_addresses"`
 	Disks        []Disk
 	Memory       []Memory
-	Model        string `json:"model_name"`
-	Processors   []Processor
-	SN           string `json:"serial_number"`
+	// TODO(xor-xor): Consider using Model type instead of string here.
+	Model      string `json:"model_name"`
+	Processors []Processor
+	SN         string `json:"serial_number"`
 }
 
 func (sr ScanResult) String() string {

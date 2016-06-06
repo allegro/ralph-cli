@@ -1,0 +1,70 @@
+{
+    "model_name": "Dell PowerEdge R620",
+    "processors": [
+        {
+            "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
+            "family": "B3",
+            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
+            "index": 1,
+            "speed": 3600,
+            "cores": 8
+        },
+        {
+            "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
+            "family": "B3",
+            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
+            "index": 2,
+            "speed": 3600,
+            "cores": 8
+        }
+    ],
+    "mac_addresses": [
+		"AA:AA:AA:AA:AA:AA",
+		"AA:BB:CC:DD:EE:FF",
+		"A1:B2:C3:D4:E5:F6",
+		"74:86:7A:EE:20:E8"
+    ],
+    "disks": [
+        {
+            "model_name": "ATA Samsung SSD 840",
+            "family": "ATA",
+            "label": "ATA Samsung SSD 840",
+            "size": 476,
+            "serial_number": "S1AXNSAD8000000"
+        },
+        {
+            "model_name": "ATA Samsung SSD 840",
+            "family": "ATA",
+            "label": "ATA Samsung SSD 840",
+            "size": 476,
+            "serial_number": "S1AXNSAD8000001"
+        }
+    ],
+    "serial_number": "UUUZZZ1",
+    "memory": [
+        {
+            "label": "Samsung DDR3 DIMM",
+            "speed": 1600,
+            "size": 16384,
+            "index": 1
+        },
+        {
+            "label": "Samsung DDR3 DIMM",
+            "speed": 1600,
+            "size": 16384,
+            "index": 2
+        },
+        {
+            "label": "Samsung DDR3 DIMM",
+            "speed": 1600,
+            "size": 16384,
+            "index": 3
+        },
+        {
+            "label": "Samsung DDR3 DIMM",
+            "speed": 1600,
+            "size": 16384,
+            "index": 4
+        }
+    ]
+}

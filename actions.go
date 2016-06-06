@@ -9,11 +9,11 @@ import (
 // PerformScan runs a scan of a given host using a set of scripts.
 // At this moment, we assume that there will be only one script here (idrac.py),
 // and that only MAC addresses will be created/updated/deleted in Ralph.
-func PerformScan(addrStr string, scripts []string, dryRun bool) {
+func PerformScan(addrStr string, scripts []string, dryRun bool, cfgDir string) {
 	if dryRun {
 		fmt.Println("Running in dry-run mode, no changes will be saved in Ralph.")
 	}
-	script, err := NewScript(scripts[0])
+	script, err := NewScript(scripts[0], cfgDir)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -53,11 +53,7 @@ func PerformScan(addrStr string, scripts []string, dryRun bool) {
 	}
 	var newEths []*EthernetComponent
 	for _, mac := range result.MACAddresses {
-		eth, err := NewEthernetComponent(mac, baseObj, "")
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
+		eth := NewEthernetComponent(mac, baseObj, "")
 		newEths = append(newEths, eth)
 	}
 	diff, err := CompareEthernetComponents(oldEths, newEths)
@@ -68,7 +64,7 @@ func PerformScan(addrStr string, scripts []string, dryRun bool) {
 		fmt.Println("No changes detected.")
 		return
 	}
-	err = SendDiffToRalph(client, diff, dryRun)
+	_, err = SendDiffToRalph(client, diff, dryRun, false)
 	if err != nil {
 		fmt.Println(err)
 	}

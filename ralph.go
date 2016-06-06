@@ -90,6 +90,7 @@ func (m *MACAddress) String() string {
 	return m.HardwareAddr.String()
 }
 
+// MarshalJSON serializes MACAddress to []byte.
 func (m *MACAddress) MarshalJSON() ([]byte, error) {
 	data, err := json.Marshal(m.String())
 	if err != nil {
@@ -98,6 +99,7 @@ func (m *MACAddress) MarshalJSON() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalJSON deserializes MACAddress from []byte.
 func (m *MACAddress) UnmarshalJSON(data []byte) error {
 	if string(data) == "\"\"" {
 		m.HardwareAddr = []byte{}
@@ -128,7 +130,7 @@ type EthernetComponent struct {
 }
 
 // NewEthernetComponent creates a new EthernetComponent holding info about some network card.
-func NewEthernetComponent(mac MACAddress, baseObj *BaseObject, speed string) (*EthernetComponent, error) {
+func NewEthernetComponent(mac MACAddress, baseObj *BaseObject, speed string) *EthernetComponent {
 	// TODO(xor-xor): use OPTIONS to get possible values for this field
 	if speed == "" {
 		speed = "unknown speed"
@@ -139,9 +141,10 @@ func NewEthernetComponent(mac MACAddress, baseObj *BaseObject, speed string) (*E
 		Speed:      speed,
 		// Label: label,
 		// Model: model
-	}, nil
+	}
 }
 
+// MarshalJSON serializes EthernetComponent to []byte.
 func (e *EthernetComponent) MarshalJSON() ([]byte, error) {
 	data, err := json.Marshal(map[string]interface{}{
 		"base_object": e.BaseObject.ID,
@@ -296,48 +299,60 @@ func (d *DiffEthernetComponent) IsEmpty() bool {
 }
 
 // SendDiffToRalph sends a given DiffEthernetComponent to Ralph. If dryRun is set to true,
-// then no changes will be sent to Ralph.
-func SendDiffToRalph(c *Client, d *DiffEthernetComponent, dryRun bool) error {
+// then no changes will be sent to Ralph. If noOutput is set to true, then all the output
+// from this function will be silenced (this is mostly for tests).
+// Returned statusCodes slice is meant only to facilitate tests, so don't be surprised if you
+// see it ignored somewhere in the source code.
+func SendDiffToRalph(c *Client, d *DiffEthernetComponent, dryRun bool, noOutput bool) (statusCodes []int, err error) {
 	var msg = "EthernetComponent with MAC address %s %s successfully.\n"
-	var err error
+	var code int
 	for _, ec := range d.Create {
 		data, err := json.Marshal(ec)
 		if err != nil {
-			return err
+			return statusCodes, err
 		}
 		if !dryRun {
-			err = c.SendToRalph("POST", APIEndpoints["EthernetComponent"], data)
+			code, err = c.SendToRalph("POST", APIEndpoints["EthernetComponent"], data)
+			statusCodes = append(statusCodes, code)
 		}
 		if err != nil {
-			return err
+			return statusCodes, err
 		}
-		fmt.Printf(msg, ec.MACAddress.String(), "created") // TODO(xor-xor): Use logger instead.
+		if !noOutput {
+			fmt.Printf(msg, ec.MACAddress.String(), "created") // TODO(xor-xor): Use logger instead.
+		}
 	}
 	for _, ec := range d.Update {
 		data, err := json.Marshal(ec)
 		if err != nil {
-			return err
+			return statusCodes, err
 		}
 		endpoint := fmt.Sprintf("%s/%d", APIEndpoints["EthernetComponent"], ec.ID)
 		if !dryRun {
-			err = c.SendToRalph("PUT", endpoint, data)
+			code, err = c.SendToRalph("PUT", endpoint, data)
+			statusCodes = append(statusCodes, code)
 		}
 		if err != nil {
-			return err
+			return statusCodes, err
 		}
-		fmt.Printf(msg, ec.MACAddress.String(), "updated") // TODO(xor-xor): Use logger instead.
+		if !noOutput {
+			fmt.Printf(msg, ec.MACAddress.String(), "updated") // TODO(xor-xor): Use logger instead.
+		}
 	}
 	for _, ec := range d.Delete {
 		endpoint := fmt.Sprintf("%s/%d", APIEndpoints["EthernetComponent"], ec.ID)
 		if !dryRun {
-			err = c.SendToRalph("DELETE", endpoint, nil)
+			code, err = c.SendToRalph("DELETE", endpoint, nil)
+			statusCodes = append(statusCodes, code)
 		}
 		if err != nil {
-			return err
+			return statusCodes, err
 		}
-		fmt.Printf(msg, ec.MACAddress.String(), "deleted") // TODO(xor-xor): Use logger instead.
+		if !noOutput {
+			fmt.Printf(msg, ec.MACAddress.String(), "deleted") // TODO(xor-xor): Use logger instead.
+		}
 	}
-	return nil
+	return statusCodes, nil
 }
 
 // CompareEthernetComponents compares two sets of EthernetComponents (old and new) and
@@ -383,17 +398,17 @@ func CompareEthernetComponents(old, new []*EthernetComponent) (*DiffEthernetComp
 }
 
 // IsEqualTo compares two EthernetComponents for equality.
-func (ec1 *EthernetComponent) IsEqualTo(ec2 *EthernetComponent) bool {
+func (e *EthernetComponent) IsEqualTo(ec *EthernetComponent) bool {
 	switch {
-	case ec1.BaseObject.ID != ec2.BaseObject.ID:
+	case e.BaseObject.ID != ec.BaseObject.ID:
 		return false
-	case ec1.MACAddress.String() != ec2.MACAddress.String():
+	case e.MACAddress.String() != ec.MACAddress.String():
 		return false
-	case ec1.Label != ec2.Label:
+	case e.Label != ec.Label:
 		return false
-	case ec1.Speed != ec2.Speed:
+	case e.Speed != ec.Speed:
 		return false
-	case ec1.Model != ec2.Model:
+	case e.Model != ec.Model:
 		return false
 	default:
 		return true
@@ -408,28 +423,6 @@ func contains(eths []*EthernetComponent, mac MACAddress) bool {
 		}
 	}
 	return false
-}
-
-// Helper function for development/diagnostic purposes.
-func printDiffEthernetComponent(diff *DiffEthernetComponent, oldEths, newEths []*EthernetComponent) {
-	for _, e := range oldEths {
-		fmt.Println("=> old:", e)
-	}
-	for _, e := range newEths {
-		fmt.Println("=> new:", e)
-	}
-	fmt.Println("===> create:")
-	for _, e := range diff.Create {
-		fmt.Println("=>", e)
-	}
-	fmt.Println("===> delete:")
-	for _, e := range diff.Delete {
-		fmt.Println("=>", e)
-	}
-	fmt.Println("===> update:")
-	for _, e := range diff.Update {
-		fmt.Println("=>", e)
-	}
 }
 
 // Software installed on a given host (PhysicalHost, VMHost, CloudHost, MesosHost).

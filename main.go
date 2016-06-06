@@ -14,7 +14,11 @@ func main() {
 	var w io.Writer
 	log.SetFlags(0)
 
-	err := PrepareCfgDir()
+	cfgDir, err := GetCfgDirLocation("")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = PrepareCfgDir(cfgDir)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -39,7 +43,7 @@ func main() {
 		cmd.Spec = "ADDR [--scripts=<scripts>] [--dry-run]"
 
 		cmd.Action = func() {
-			PerformScan(*addr, *scripts, *dryRun)
+			PerformScan(*addr, *scripts, *dryRun, cfgDir)
 		}
 	})
 

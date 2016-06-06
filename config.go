@@ -15,28 +15,34 @@ type Config struct {
 // List of scripts that are bundled with ralph-cli (at this moment, only idrac.py).
 var bundledScripts = []string{"idrac.py"}
 
-// GetCfgDirLocation gets path to current user's home dir and appends ".ralph-cli" to it.
-func GetCfgDirLocation() (string, error) {
-	user, err := user.Current()
-	if err != nil {
-		return "", err
+// GetCfgDirLocation gets path to current user's home dir and appends ".ralph-cli" to it,
+// if baseDir is an empty string, otherwise appends ".ralph-cli" to baseDir path (the former
+// case is meant mostly for facilitation of testing).
+func GetCfgDirLocation(baseDir string) (string, error) {
+	switch {
+	case baseDir == "":
+		user, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		baseDir = user.HomeDir
+	default:
+		if _, err := os.Stat(baseDir); err != nil {
+			return "", err
+		}
 	}
-	return filepath.Join(user.HomeDir, ".ralph-cli"), nil
+	return filepath.Join(baseDir, ".ralph-cli"), nil
 }
 
-// PrepareCfgDir creates ~/.ralph-cli dir with its subdirs and copies bundled
-// scripts to "scripts" dir.
-func PrepareCfgDir() error {
+// PrepareCfgDir creates config dir given as cfgDir (for most cases it will be ~/.ralph-cli)
+// along with its subdirs, and copies bundled scripts to the "scripts" subdir.
+func PrepareCfgDir(cfgDir string) error {
 	var err error
-	loc, err := GetCfgDirLocation()
+	err = createCfgDir(cfgDir)
 	if err != nil {
 		return err
 	}
-	err = createCfgDir(loc)
-	if err != nil {
-		return err
-	}
-	var scriptsDir = filepath.Join(loc, "scripts")
+	var scriptsDir = filepath.Join(cfgDir, "scripts")
 	// Copy bundled scripts.
 	for _, script := range bundledScripts {
 		if _, err := os.Stat(filepath.Join(scriptsDir, script)); os.IsNotExist(err) {

@@ -1,0 +1,18 @@
+{
+    "count": 1,
+    "results": [
+        {
+            "ethernet": {
+                "label": "",
+                "mac": "74:86:7a:ee:20:e8",
+                "base_object": {
+                    "id": 44565
+                },
+                "model": null,
+                "speed": "unknown speed",
+                "id": 3
+            },
+            "is_management": true
+        }
+    ]
+}

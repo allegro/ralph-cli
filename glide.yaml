@@ -4,3 +4,9 @@ import:
 - package: github.com/labstack/gommon
   subpackages:
   - log
+- package: github.com/juju/testing
+  subpackages:
+  - checkers
+- package: github.com/juju/loggo
+- package: gopkg.in/check.v1
+- package: gopkg.in/yaml.v2

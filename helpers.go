@@ -48,7 +48,7 @@ func GetTempCfgDir() (cfgDir, baseDir string, err error) {
 	if err != nil {
 		goto FAIL
 	}
-	err = PrepareCfgDir(cfgDir)
+	err = PrepareCfgDir(cfgDir, "config.toml")
 	if err != nil {
 		goto FAIL
 	}
@@ -112,8 +112,27 @@ func MockServerClient(code int, body string) (*httptest.Server, *Client) {
 	return server, client
 }
 
-// TestEq is a predicate function testing two byte slices for equality.
-func TestEq(a, b []byte) bool {
+// TestEqByte is a predicate function testing two byte slices for equality.
+func TestEqByte(a, b []byte) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// TestEqStr is a predicate function testing two string slices for equality.
+func TestEqStr(a, b []string) bool {
 	if a == nil && b == nil {
 		return true
 	}

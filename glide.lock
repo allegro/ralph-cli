@@ -1,6 +1,8 @@
-hash: a2c916ead1c7e62bef1808130cb4dfdae0f035d7739ccbfdb26e54aa661dd973
-updated: 2016-06-06T11:23:00.062680077+02:00
+hash: 2c0b87ba2ec1a30707d9884b79ed952d64e47b49fb964990e0d1dadd6ef9c1fe
+updated: 2016-06-06T13:40:57.517523169+02:00
 imports:
+- name: github.com/BurntSushi/toml
+  version: f0aeabca5a127c4078abb8c8d64298b147264b55
 - name: github.com/jawher/mow.cli
   version: 772320464101e904cd51198160eb4d489be9cc49
 - name: github.com/juju/loggo

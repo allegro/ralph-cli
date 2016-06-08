@@ -2,54 +2,44 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
-	"os"
 )
 
 // PerformScan runs a scan of a given host using a set of scripts.
 // At this moment, we assume that there will be only one script here (idrac.py),
 // and that only MAC addresses will be created/updated/deleted in Ralph.
-func PerformScan(addrStr string, scripts []string, dryRun bool, cfgDir string) {
+func PerformScan(addrStr string, scripts []string, dryRun bool, cfg *Config, cfgDir string) {
 	if dryRun {
-		fmt.Println("Running in dry-run mode, no changes will be saved in Ralph.")
+		// TODO(xor-xor): Wire up logger here.
+		fmt.Println("INFO: Running in dry-run mode, no changes will be saved in Ralph.")
 	}
 	script, err := NewScript(scripts[0], cfgDir)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalln(err)
 	}
 	addr, err := NewAddr(addrStr)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalln(err)
 	}
-	result, err := script.Run(addr)
+	result, err := script.Run(addr, cfg)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalln(err)
 	}
-	client, err := NewClient(
-		os.Getenv("RALPH_API_URL"),
-		os.Getenv("RALPH_API_KEY"),
-		addr,
-		&http.Client{},
-	)
+	client, err := NewClient(cfg, addr, &http.Client{})
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalln(err)
 	}
 	baseObj, err := addr.GetBaseObject(client)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalln(err)
 	}
 	oldEths, err := baseObj.GetEthernetComponents(client)
 	// TODO(xor-xor): ExcludeMgmt should be removed when similar functionality will be implemented
 	// in Ralph's API. Therefore, it should be considered as a temporary solution.
 	oldEths, err = ExcludeMgmt(oldEths, addr, client)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalln(err)
 	}
 	var newEths []*EthernetComponent
 	for _, mac := range result.MACAddresses {
@@ -58,7 +48,7 @@ func PerformScan(addrStr string, scripts []string, dryRun bool, cfgDir string) {
 	}
 	diff, err := CompareEthernetComponents(oldEths, newEths)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 	if diff.IsEmpty() {
 		fmt.Println("No changes detected.")
@@ -66,6 +56,6 @@ func PerformScan(addrStr string, scripts []string, dryRun bool, cfgDir string) {
 	}
 	_, err = SendDiffToRalph(client, diff, dryRun, false)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 }

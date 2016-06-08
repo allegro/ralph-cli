@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/jawher/mow.cli"
 	gommonlog "github.com/labstack/gommon/log"
@@ -16,17 +16,21 @@ func main() {
 
 	cfgDir, err := GetCfgDirLocation("")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
-	err = PrepareCfgDir(cfgDir)
+	cfgFileName := "config.toml"
+	err = PrepareCfgDir(cfgDir, cfgFileName)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
-
-	cfg, _ := GetConfig()
+	cfg, err := GetConfig(filepath.Join(cfgDir, cfgFileName))
+	if err != nil {
+		log.Fatalln(err)
+	}
 	switch cfg.LogOutput {
-	case "logstash":
-		w = NewLogstashWriter(cfg)
+	// TODO(xor-xor): Uncomment this when logstash implementation will be ready.
+	// case "logstash":
+	// 	w = NewLogstashWriter(cfg)
 	default:
 		w = os.Stderr
 	}
@@ -43,7 +47,7 @@ func main() {
 		cmd.Spec = "ADDR [--scripts=<scripts>] [--dry-run]"
 
 		cmd.Action = func() {
-			PerformScan(*addr, *scripts, *dryRun, cfgDir)
+			PerformScan(*addr, *scripts, *dryRun, cfg, cfgDir)
 		}
 	})
 

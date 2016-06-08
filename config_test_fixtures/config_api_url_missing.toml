@@ -1,0 +1,7 @@
+Debug = false
+LogOutput = ""
+ClientTimeout = 10
+RalphAPIURL = ""
+RalphAPIKey = "abcdefghijklmnopqrstuwxyz0123456789ABCDE"
+ManagementUserName = "some_user"
+ManagementUserPassword = "some_password"

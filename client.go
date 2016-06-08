@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -30,29 +29,16 @@ type Client struct {
 	client      *http.Client
 }
 
-// NewClient creates a new Client instance.
-func NewClient(ralphURL, apiKey string, scannedAddr Addr, client *http.Client) (*Client, error) {
-	// TODO(xor-xor): get rid of Query/Fragment if present
-	if apiKey == "" {
-		return nil, fmt.Errorf("API key is missing (did you forget to set it via RALPH_API_KEY environment variable?)")
-	}
-	if ralphURL == "" {
-		return nil, fmt.Errorf("Ralph's URL is missing (did you forget to set it via RALPH_API_URL environment variable?)")
-	}
-	// TODO(xor-xor): Investigate why url.Parse happily accepts stuff like "httplocalhost" or
-	// "http/localhost/api", and add some additional checks here for such cases.
-	u, err := url.Parse(ralphURL)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing Ralph's URL: %v", err)
-	}
+// NewClient creates a new Client instance. If client arg is nil, then http.Client with some
+// sensible defaults (e.g., for Timeout) will be used.
+func NewClient(cfg *Config, scannedAddr Addr, client *http.Client) (*Client, error) {
 	if client == nil {
-		// TODO(xor-xor): This timeout should be taken from config.
-		client = &http.Client{Timeout: time.Second * 10}
+		client = &http.Client{Timeout: time.Duration(cfg.ClientTimeout) * time.Second}
 	}
 	return &Client{
 		scannedAddr: scannedAddr,
-		ralphURL:    u.String(),
-		apiKey:      apiKey,
+		ralphURL:    cfg.RalphAPIURL,
+		apiKey:      cfg.RalphAPIKey,
 		client:      client,
 	}, nil
 }

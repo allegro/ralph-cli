@@ -6,15 +6,14 @@ import (
 	"net/http"
 )
 
-// PerformScan runs a scan of a given host using a set of scripts.
-// At this moment, we assume that there will be only one script here (idrac.py),
-// and that only MAC addresses will be created/updated/deleted in Ralph.
-func PerformScan(addrStr string, scripts []string, dryRun bool, cfg *Config, cfgDir string) {
+// PerformScan runs a scan of a given host using a script with scriptName.
+// At this moment, we assume that only MAC addresses will be created/updated/deleted in Ralph.
+func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir string) {
 	if dryRun {
 		// TODO(xor-xor): Wire up logger here.
 		fmt.Println("INFO: Running in dry-run mode, no changes will be saved in Ralph.")
 	}
-	script, err := NewScript(scripts[0], cfgDir)
+	script, err := NewScript(scriptName, cfgDir)
 	if err != nil {
 		log.Fatalln(err)
 	}

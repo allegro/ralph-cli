@@ -40,14 +40,17 @@ func main() {
 	app := cli.App("ralph-cli", "Command-line interface for Ralph")
 
 	app.Command("scan", "Perform scan of a given host/network", func(cmd *cli.Cmd) {
-		addr := cmd.StringArg("ADDR", "", "Address of a host to scan (IP or FQDN)")
-		scripts := cmd.StringsOpt("scripts", []string{"idrac.py"}, "Scripts to be executed")
+		addr := cmd.StringArg("IP_ADDR", "", "IP address of a host to scan")
+		script := cmd.StringOpt("script", "", "Script to be executed")
 		dryRun := cmd.BoolOpt("dry-run", false, "Don't write anything")
 
-		cmd.Spec = "ADDR [--scripts=<scripts>] [--dry-run]"
+		cmd.Spec = "IP_ADDR --script=<script_name> [--dry-run]"
 
 		cmd.Action = func() {
-			PerformScan(*addr, *scripts, *dryRun, cfg, cfgDir)
+			if *script == "" {
+				log.Fatalln("No script supplied to '--script' switch. Aborting.")
+			}
+			PerformScan(*addr, *script, *dryRun, cfg, cfgDir)
 		}
 	})
 

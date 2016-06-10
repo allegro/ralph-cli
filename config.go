@@ -33,8 +33,8 @@ var DefaultCfg = Config{
 	ManagementUserPassword: "change_me",
 }
 
-// List of scripts that are bundled with ralph-cli (at this moment, only idrac.py).
-var bundledScripts = []string{"idrac.py"}
+// List of scripts that are bundled with ralph-cli.
+var bundledScripts = []string{"idrac.py", "ilo.py"}
 
 // GetCfgDirLocation gets path to current user's home dir and appends ".ralph-cli"
 // to it, if baseDir is an empty string, otherwise appends ".ralph-cli" to baseDir path

@@ -3,7 +3,6 @@
 import argparse
 import json
 import os
-import pprint
 import re
 import uuid
 from xml.etree import ElementTree as ET

@@ -53,7 +53,7 @@ func TestSendToRalph(t *testing.T) {
 		errMsg     string
 		want       int
 	}{
-		"#0 Ralph responds with >299": {
+		"#0 Ralph responds with >= 400": {
 			"POST",
 			"non-existing-endpoint",
 			[]byte{},
@@ -87,4 +87,45 @@ func TestSendToRalph(t *testing.T) {
 		}
 	}
 
+}
+
+func TestGetFromRalph(t *testing.T) {
+	var cases = map[string]struct {
+		endpoint   string
+		query      string
+		statusCode int
+		errMsg     string
+		want       []byte
+	}{
+		"#0 Ralph responds with >= 400": {
+			"non-existing-endpoint",
+			"some_valid_query",
+			404,
+			"error while sending a GET request to Ralph",
+			[]byte{},
+		},
+	}
+
+	for tn, tc := range cases {
+		server, client := MockServerClient(tc.statusCode, `{}`)
+		defer server.Close()
+
+		got, err := client.GetFromRalph(tc.endpoint, tc.query)
+		switch {
+		case tc.errMsg != "":
+			if err == nil || !strings.Contains(err.Error(), tc.errMsg) {
+				t.Errorf("%s\ndidn't get expected string: %q in err msg: %q", tn, tc.errMsg, err)
+			}
+			if !TestEqByte(got, tc.want) {
+				t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+			}
+		default:
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			if !TestEqByte(got, tc.want) {
+				t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+			}
+		}
+	}
 }

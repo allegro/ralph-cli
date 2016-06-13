@@ -101,7 +101,8 @@ func (m *MACAddress) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON deserializes MACAddress from []byte.
 func (m *MACAddress) UnmarshalJSON(data []byte) error {
-	if string(data) == "\"\"" {
+	// Most management IPs in Ralph won't be associated with any MAC address.
+	if string(data) == "\"\"" || string(data) == "null" {
 		m.HardwareAddr = []byte{}
 		return nil
 	}

@@ -28,9 +28,10 @@ func TestRunHelperProcess(t *testing.T) {
 
 func TestPrepareEnv(t *testing.T) {
 	var cases = map[string]struct {
-		oldEnv []string
-		config *Config
-		want   []string
+		oldEnv     []string
+		config     *Config
+		addrToScan Addr
+		want       []string
 	}{
 		"#0 Existing Cmd.Env shouldn't be destroyed": {
 			[]string{"GO_WANT_HELPER_PROCESS=1"},
@@ -41,10 +42,11 @@ func TestPrepareEnv(t *testing.T) {
 				ManagementUserName:     "some_user",
 				ManagementUserPassword: "some_password",
 			},
-			[]string{"GO_WANT_HELPER_PROCESS=1", "MANAGEMENT_USER_NAME=some_user", "MANAGEMENT_USER_PASSWORD=some_password"},
+			Addr("10.20.30.40"),
+			[]string{"GO_WANT_HELPER_PROCESS=1", "MANAGEMENT_USER_NAME=some_user", "MANAGEMENT_USER_PASSWORD=some_password", "IP_TO_SCAN=10.20.30.40"},
 		},
-		"#1 Existing management user/pass should be overwritten": {
-			[]string{"MANAGEMENT_USER_NAME=old_user", "MANAGEMENT_USER_PASSWORD=old_password"},
+		"#1 Existing management user/pass/IP should be overwritten": {
+			[]string{"MANAGEMENT_USER_NAME=old_user", "MANAGEMENT_USER_PASSWORD=old_password", "IP_TO_SCAN=11.22.33.44"},
 			&Config{
 				ClientTimeout:          10,
 				RalphAPIURL:            "http://localhost:8080/api",
@@ -52,11 +54,12 @@ func TestPrepareEnv(t *testing.T) {
 				ManagementUserName:     "some_user",
 				ManagementUserPassword: "some_password",
 			},
-			[]string{"MANAGEMENT_USER_NAME=some_user", "MANAGEMENT_USER_PASSWORD=some_password"},
+			Addr("10.20.30.40"),
+			[]string{"MANAGEMENT_USER_NAME=some_user", "MANAGEMENT_USER_PASSWORD=some_password", "IP_TO_SCAN=10.20.30.40"},
 		},
 	}
 	for tn, tc := range cases {
-		got := prepareEnv(tc.oldEnv, tc.config)
+		got := prepareEnv(tc.oldEnv, tc.addrToScan, tc.config)
 		if !TestEqStr(got, tc.want) {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}

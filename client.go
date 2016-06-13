@@ -78,7 +78,7 @@ func (c *Client) SendToRalph(method, endpoint string, data []byte) (statusCode i
 		return 0, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode > 299 {
+	if resp.StatusCode >= 400 {
 		body, err := readBody(resp)
 		if err != nil {
 			return 0, err
@@ -97,13 +97,19 @@ func (c *Client) GetFromRalph(endpoint string, query string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-
 	resp, err := c.client.Do(req)
+	defer resp.Body.Close()
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return []byte{}, fmt.Errorf("error while sending a GET request to Ralph: %s",
+			resp.Status)
+	}
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return []byte{}, err
+	}
 	return body, nil
 }
 

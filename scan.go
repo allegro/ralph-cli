@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // Script represents a single, user script which performs the actual scan
@@ -43,10 +44,15 @@ func NewScript(fileName, cfgDir string) (Script, error) {
 
 // Run launches a scan Script on a given address (at this moment, only IPs are fully
 // supported).
-func (s Script) Run(addr Addr) (*ScanResult, error) {
+func (s Script) Run(addr Addr, cfg *Config) (*ScanResult, error) {
 	var res ScanResult
 	var err error
 	cmd := execCommand(s.LocalPath, string(addr))
+	// cmd.Env won't be empty during some tests (see GetHelperCommand),
+	// so this check is necessary to preserve it.
+	if len(cmd.Env) == 0 {
+		cmd.Env = prepareEnv(os.Environ(), cfg)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return &res, fmt.Errorf("error running script %s: %s\nstderr: %s",
@@ -54,6 +60,25 @@ func (s Script) Run(addr Addr) (*ScanResult, error) {
 	}
 	err = json.Unmarshal(output, &res)
 	return &res, err
+}
+
+// prepareEnv is a helper function for Script.Run. It modifies the environment that
+// should be used for executing given Script.
+func prepareEnv(oldEnv []string, cfg *Config) (newEnv []string) {
+	for _, e := range oldEnv {
+		pair := strings.Split(e, "=")
+		switch {
+		case pair[0] == "MANAGEMENT_USER_NAME":
+			continue
+		case pair[0] == "MANAGEMENT_USER_PASSWORD":
+			continue
+		default:
+			newEnv = append(newEnv, e)
+		}
+	}
+	newEnv = append(newEnv, fmt.Sprintf("MANAGEMENT_USER_NAME=%s", cfg.ManagementUserName))
+	newEnv = append(newEnv, fmt.Sprintf("MANAGEMENT_USER_PASSWORD=%s", cfg.ManagementUserPassword))
+	return newEnv
 }
 
 // ScanResult holds parsed output of a scan script.

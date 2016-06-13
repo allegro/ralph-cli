@@ -10,17 +10,19 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	var cases = map[string]struct {
+	var cases = []struct {
+		config      *Config
 		scannedAddr Addr
-		ralphURL    string
-		apiKey      string
 		errMsg      string
 		want        *Client
 	}{
-		"#0 All params provided are correct": {
+		{
+			&Config{
+				RalphAPIURL:   "http://localhost:8080/api",
+				RalphAPIKey:   "abcdefghijklmnopqrstuwxyz0123456789ABCDE",
+				ClientTimeout: 10,
+			},
 			Addr("10.20.30.40"),
-			"http://localhost:8080/api",
-			"abcdefghijklmnopqrstuwxyz0123456789ABCDE",
 			"",
 			&Client{
 				"10.20.30.40",
@@ -30,35 +32,14 @@ func TestNewClient(t *testing.T) {
 				&http.Client{Timeout: time.Second * 10},
 			},
 		},
-		"#1 Missing API key": {
-			Addr("10.20.30.40"),
-			"http://localhost:8080/api",
-			"",
-			"API key is missing",
-			nil,
-		},
-		"#2 Missing Ralph URL": {
-			Addr("10.20.30.40"),
-			"",
-			"abcdefghijklmnopqrstuwxyz0123456789ABCDE",
-			"Ralph's URL is missing",
-			nil,
-		},
 	}
 	for tn, tc := range cases {
-		got, err := NewClient(tc.ralphURL, tc.apiKey, tc.scannedAddr, nil)
-		switch {
-		case tc.errMsg != "":
-			if err == nil || !strings.Contains(err.Error(), tc.errMsg) {
-				t.Errorf("%s\ndidn't get expected string: %q in err msg: %q", tn, tc.errMsg, err)
-			}
-		default:
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			if eq, err := checkers.DeepEqual(got, tc.want); !eq {
-				t.Errorf("%s\n%s", tn, err)
-			}
+		got, err := NewClient(tc.config, tc.scannedAddr, nil)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("#%d\n%s", tn, err)
 		}
 	}
 }

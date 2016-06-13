@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import argparse
 import json
 import os
 import re
+import sys
 import uuid
 from xml.etree import ElementTree as ET
 
@@ -341,14 +341,24 @@ def idrac_device_info(idrac_manager):
     return device_info
 
 
-def scan(host):
-    idrac_manager = IDRAC(host, USER, PASS)
+def scan(host, user, password):
+    if host == "":
+        raise IdracError("No IP address to scan has been provided.")
+    if user == "":
+        raise IdracError("No management username has been provided.")
+    if host == "":
+        raise IdracError("No management password has been provided.")
+    idrac_manager = IDRAC(host, user, password)
     device_info = idrac_device_info(idrac_manager)
     print(json.dumps(device_info))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('host', nargs=1, help='host to scan')
-    args = parser.parse_args()
-    scan(args.host[0])
+    host = os.environ.get('IP_TO_SCAN', "")
+    user = os.environ.get('MANAGEMENT_USER_NAME', "")
+    password = os.environ.get('MANAGEMENT_USER_PASSWORD', "")
+    try:
+        scan(host, user, password)
+    except IdracError as e:
+        print(e.args[0])
+        sys.exit(1)

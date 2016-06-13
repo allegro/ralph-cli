@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import json
 import os
 import sys
@@ -8,9 +7,6 @@ from copy import deepcopy
 
 import hpilo
 
-
-USER = os.environ['MANAGEMENT_USER_NAME']
-PASS = os.environ['MANAGEMENT_USER_PASSWORD']
 
 MAC_PREFIX_BLACKLIST = [
     '505054', '33506F', '009876', '000000', '00000C', '204153', '149120',
@@ -52,8 +48,8 @@ def normalize_mac_address(mac_address):
     return mac_address
 
 
-def get_ilo_instance(host):
-    ilo = hpilo.Ilo(hostname=host, login=USER, password=PASS, port=443)
+def get_ilo_instance(host, user, password):
+    ilo = hpilo.Ilo(hostname=host, login=user, password=password)
     return ilo
 
 
@@ -223,19 +219,25 @@ def ilo_device_info(ilo_manager, ilo_version):
     return device_info
 
 
-def scan(host):
-    ilo_manager = get_ilo_instance(host)
+def scan(host, user, password):
+    if host == "":
+        raise IloError("No IP address to scan has been provided.")
+    if user == "":
+        raise IloError("No management username has been provided.")
+    if host == "":
+        raise IloError("No management password has been provided.")
+    ilo_manager = get_ilo_instance(host, user, password)
     ilo_version = get_ilo_version(ilo_manager)
     device_info = ilo_device_info(ilo_manager, ilo_version)
     print(json.dumps(device_info))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('host', nargs=1, help='host to scan')
-    args = parser.parse_args()
+    host = os.environ.get('IP_TO_SCAN', "")
+    user = os.environ.get('MANAGEMENT_USER_NAME', "")
+    password = os.environ.get('MANAGEMENT_USER_PASSWORD', "")
     try:
-        scan(args.host[0])
+        scan(host, user, password)
     except (IloError, hpilo.IloCommunicationError) as e:
         print(e.args[0])
         sys.exit(1)

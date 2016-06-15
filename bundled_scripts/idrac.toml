@@ -1,0 +1,6 @@
+Language = "python"
+LanguageVersion = 3
+
+[[requirement]]
+name = "requests"
+version = "2.10.0"

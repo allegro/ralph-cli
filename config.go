@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -33,12 +34,18 @@ var DefaultCfg = Config{
 	ManagementUserPassword: "change_me",
 }
 
-// List of scripts that are bundled with ralph-cli.
-var bundledScripts = []string{"idrac.py", "ilo.py"}
+// List of files (scripts, manifests) that are bundled with ralph-cli.
+var bundledFiles = []string{
+	"idrac.py",
+	"idrac.toml",
+	"ilo.py",
+	"ilo.toml",
+}
 
-// GetCfgDirLocation gets path to current user's home dir and appends ".ralph-cli"
-// to it, if baseDir is an empty string, otherwise appends ".ralph-cli" to baseDir path
-// (the former case is meant mostly for facilitation of testing).
+// GetCfgDirLocation generates the path to the config dir. It gets the path to current
+// user's home dir and if baseDir is an empty string, it appends ".ralph-cli" to it,
+// otherwise appends ".ralph-cli" to baseDir path (the former case is meant mostly for
+// facilitation of testing).
 func GetCfgDirLocation(baseDir string) (string, error) {
 	switch {
 	case baseDir == "":
@@ -66,7 +73,7 @@ func PrepareCfgDir(cfgDir, cfgFileName string) error {
 
 	// Create default config file.
 	var cfgFile = filepath.Join(cfgDir, cfgFileName)
-	if !cfgFileExists(cfgFile) {
+	if !fileExists(cfgFile) {
 		buf := new(bytes.Buffer)
 		if err := toml.NewEncoder(buf).Encode(DefaultCfg); err != nil {
 			return err
@@ -76,11 +83,11 @@ func PrepareCfgDir(cfgDir, cfgFileName string) error {
 		}
 	}
 
-	// Copy bundled scripts.
+	// Copy bundled files (scripts and manifests).
 	var scriptsDir = filepath.Join(cfgDir, "scripts")
-	for _, script := range bundledScripts {
-		if _, err := os.Stat(filepath.Join(scriptsDir, script)); os.IsNotExist(err) {
-			if err = RestoreAsset(scriptsDir, script); err != nil {
+	for _, file := range bundledFiles {
+		if _, err := os.Stat(filepath.Join(scriptsDir, file)); os.IsNotExist(err) {
+			if err = RestoreAsset(scriptsDir, file); err != nil {
 				return err
 			}
 		}
@@ -121,7 +128,7 @@ func GetConfig(cfgFile string) (*Config, error) {
 func readConfig(cfgFile string) (*Config, error) {
 	var cfg Config
 	switch {
-	case !cfgFileExists(cfgFile):
+	case !fileExists(cfgFile):
 		cfg = DefaultCfg
 	default:
 		if err := checkCfgFilePerms(cfgFile); err != nil {
@@ -134,8 +141,8 @@ func readConfig(cfgFile string) (*Config, error) {
 	return &cfg, nil
 }
 
-func cfgFileExists(cfgFile string) bool {
-	_, err := os.Stat(cfgFile)
+func fileExists(file string) bool {
+	_, err := os.Stat(file)
 	if err != nil {
 		return false
 	}
@@ -146,7 +153,7 @@ func cfgFileExists(cfgFile string) bool {
 // Such permissions are necessary, since cfgFile may contain sensitive information
 // (e.g., passwords)
 func checkCfgFilePerms(cfgFile string) error {
-	// We assume here that cfgFile already exists (use cfgFileExists for such check).
+	// We assume here that cfgFile already exists (use fileExists for such check).
 	rwOwnerMask := os.FileMode(0600)
 	finfo, _ := os.Stat(cfgFile)
 	if finfo.Mode()&^rwOwnerMask != 0 {
@@ -184,8 +191,121 @@ func (c *Config) getDefaults() {
 	}
 }
 
-// CreatePythonVenv creates a virtualenv for Python scripts in ~/.ralph-cli dir.
-func CreatePythonVenv() error {
-	// TODO(xor-xor): Implement this.
+// Manifest represents the contents of a .toml file holding additional information,  which may be
+// helpful/required to run user's script (e.g., language, version, requirements etc.).
+type Manifest struct {
+	Path            string `toml:"-"`
+	Language        string
+	LanguageVersion int
+	Requirements    []requirement `toml:"requirement"`
+}
+
+// requirement is a helper type for Manifest. It shouldn't be used alone/separately.
+type requirement struct {
+	Name    string
+	Version string
+}
+
+// GetManifest loads manifest file pointed by path argument. Each manifest file should have the same
+// name as the script file associated with it (e.g., having a script "idrac.py", its manifest file
+// should be named "idrac.toml").
+// At this moment manifest files are not required, although it may change in the future (especially
+// when we add some more information to them).
+func GetManifest(path string) (*Manifest, error) {
+	var mf Manifest
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, nil
+	}
+	if _, err := toml.DecodeFile(path, &mf); err != nil {
+		return nil, fmt.Errorf("error reading manifest file %s: %v", path, err)
+	}
+	mf.Path = path
+	mf.Language = strings.ToLower(mf.Language)
+	if err := mf.validate(); err != nil {
+		return nil, fmt.Errorf("%v", err)
+	}
+	return &mf, nil
+}
+
+// validate performs some sanity checks and normalizations on Manifest.
+func (m *Manifest) validate() error {
+	switch {
+	case m.Language == "":
+		return fmt.Errorf("manifest error: Language field is missing in %s", m.Path)
+	case m.Language == "python" && (m.LanguageVersion != 2 && m.LanguageVersion != 3):
+		return fmt.Errorf("manifest error: LanguageVersion field for Python should be either 2 or 3")
+	}
+	for _, r := range m.Requirements {
+		switch {
+		case r.Name == "":
+			return fmt.Errorf("manifest error: requirement with empty name field in %s", m.Path)
+		}
+	}
+	return nil
+}
+
+// VenvExists returns true if there's a virtualenv for a given Python script, or false otherwise.
+// We can add more sophisticated heuristics here, but at this moment, checking for bin/activate
+// script should be enough.
+func VenvExists(s Script) bool {
+	venvPath := MakeVenvPath(s)
+	file := filepath.Join(venvPath, "bin", "activate")
+	return fileExists(file)
+}
+
+// MakeVenvPath generates the absolute path to virtualenv associated with the given script by
+// replacing from its path the last dot-separated component with "_env" suffix (e.g., for
+// "/home/user/.ralph-cli/scripts/idrac.py" we will get "/home/user/.ralph-cli/scripts/idrac_env").
+func MakeVenvPath(s Script) string {
+	scriptsDir := filepath.Dir(s.Path)
+	baseName := strings.TrimSuffix(filepath.Base(s.Path), ".py")
+	venvName := strings.Join([]string{baseName, "env"}, "_")
+	return filepath.Join(scriptsDir, venvName)
+}
+
+// CreatePythonVenv creates a virtualenv for Python scripts in ~/.ralph-cli/scripts and returns
+// its path.
+func CreatePythonVenv(s Script) (venvPath string, err error) {
+	var python string
+	venvPath = MakeVenvPath(s)
+	switch {
+	case s.Manifest.LanguageVersion == 3:
+		python = "python3"
+	case s.Manifest.LanguageVersion == 2:
+		python = "python2"
+	default:
+		python = "python"
+	}
+	cmd := execCommand("virtualenv", "-p", python, venvPath)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("error creating python virtualenv: %v", err)
+	}
+	return venvPath, nil
+}
+
+// InstallPythonReqs takes a list of Requirements from Manifest associated with a given Script,
+// and installs them with "pip install" into a virtualenv pointed by venvPath.
+func InstallPythonReqs(venvPath string, s Script) error {
+	numReqs := len(s.Manifest.Requirements)
+	if numReqs > 0 {
+		var req string
+		var args = make([]string, numReqs+1)
+		args[0] = "install"
+		for i, r := range s.Manifest.Requirements {
+			switch {
+			case r.Version == "":
+				req = r.Name
+			default:
+				req = strings.Join([]string{r.Name, r.Version}, "==")
+			}
+			args[i+1] = req
+		}
+		pip := filepath.Join(venvPath, "bin", "pip")
+		cmd := execCommand(pip, args...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("error installing requirements for %s: %v; output from pip:\n-->\n%s<--",
+				s.Path, err, string(output))
+		}
+	}
 	return nil
 }

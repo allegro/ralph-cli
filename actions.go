@@ -17,6 +17,15 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if err != nil {
 		log.Fatalln(err)
 	}
+	if script.Manifest != nil && script.Manifest.Language == "python" && !VenvExists(script) {
+		venvPath, err := CreatePythonVenv(script)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if err := InstallPythonReqs(venvPath, script); err != nil {
+			log.Fatalln(err)
+		}
+	}
 	addr, err := NewAddr(addrStr)
 	if err != nil {
 		log.Fatalln(err)

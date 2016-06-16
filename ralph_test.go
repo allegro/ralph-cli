@@ -439,7 +439,60 @@ func TestSendDiffToRalph(t *testing.T) {
 
 		got, err := SendDiffToRalph(client, tc.diff, tc.dryRun, true)
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("%s\nerr: %s", tn, err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("%s\n%s", tn, err)
+		}
+	}
+}
+
+func TestExcludeExposedInDHCP(t *testing.T) {
+	var cases = map[string]struct {
+		diff       *DiffEthernetComponent
+		statusCode int
+		file       string
+		want       *DiffEthernetComponent
+	}{
+		"#0 Not exposed in DHCP shouldn't be excluded": {
+			diff: &DiffEthernetComponent{
+				Delete: []*EthernetComponent{
+					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+				},
+			},
+			statusCode: 200,
+			file:       "exclude_exposed_in_dhcp_false.json",
+			want: &DiffEthernetComponent{
+				Delete: []*EthernetComponent{
+					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+				},
+			},
+		},
+		"#1 Exposed in DHCP should be excluded": {
+			diff: &DiffEthernetComponent{
+				Delete: []*EthernetComponent{
+					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+				},
+			},
+			statusCode: 200,
+			file:       "exclude_exposed_in_dhcp_true.json",
+			want: &DiffEthernetComponent{
+				Delete: []*EthernetComponent{},
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		fixture, err := LoadFixture(ralphTestFixturesDir, tc.file)
+		if err != nil {
+			t.Fatalf("file: %s\n%s", tc.file, err)
+		}
+		server, client := MockServerClient(tc.statusCode, fixture)
+		defer server.Close()
+
+		got, err := ExcludeExposedInDHCP(tc.diff, client, true)
+		if err != nil {
+			t.Fatalf("%s\nerr: %s", tn, err)
 		}
 		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
 			t.Errorf("%s\n%s", tn, err)

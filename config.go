@@ -15,6 +15,7 @@ import (
 
 // Config holds the configuration for ralph-cli.
 type Config struct {
+	Path                   string `json:"-"`
 	Debug                  bool
 	LogOutput              string // e.g. logstash
 	ClientTimeout          int
@@ -131,6 +132,7 @@ func readConfig(cfgFile string) (*Config, error) {
 	case !fileExists(cfgFile):
 		cfg = DefaultCfg
 	default:
+		cfg.Path = cfgFile
 		if err := checkCfgFilePerms(cfgFile); err != nil {
 			return nil, err
 		}
@@ -163,21 +165,29 @@ func checkCfgFilePerms(cfgFile string) error {
 }
 
 // validate performs some sanity checks/normalizations on Config.
+// All the errors are returned at once (i.e., aggregated), via ValidationError.
 func (c *Config) validate() error {
+	var errMsgs []*string
 	if c.RalphAPIKey == "" {
-		return fmt.Errorf("config error: Ralph API key is missing")
+		msg := fmt.Sprint("Ralph API key is missing")
+		errMsgs = append(errMsgs, &msg)
 	}
 	if c.RalphAPIURL == "" {
-		return fmt.Errorf("config error: Ralph API URL is missing")
+		msg := fmt.Sprint("Ralph API URL is missing")
+		errMsgs = append(errMsgs, &msg)
 	}
 	// TODO(xor-xor): Investigate why url.Parse happily accepts stuff like "httplocalhost" or
 	// "http/localhost/api", and add some additional checks here for such cases.
 	// TODO(xor-xor): Get rid of Query/Fragment if present in URL.
 	u, err := url.Parse(c.RalphAPIURL)
 	if err != nil {
-		return fmt.Errorf("config error: error while parsing Ralph API URL: %v", err)
+		msg := fmt.Sprintf("error while parsing Ralph API URL: %v", err)
+		errMsgs = append(errMsgs, &msg)
 	}
 	c.RalphAPIURL = u.String()
+	if len(errMsgs) > 0 {
+		return NewValidationError(c.Path, errMsgs)
+	}
 	return nil
 }
 
@@ -222,24 +232,31 @@ func GetManifest(path string) (*Manifest, error) {
 	mf.Path = path
 	mf.Language = strings.ToLower(mf.Language)
 	if err := mf.validate(); err != nil {
-		return nil, fmt.Errorf("%v", err)
+		return nil, err
 	}
 	return &mf, nil
 }
 
 // validate performs some sanity checks and normalizations on Manifest.
+// All the errors are returned at once (i.e., aggregated), via ValidationError.
 func (m *Manifest) validate() error {
-	switch {
-	case m.Language == "":
-		return fmt.Errorf("manifest error: Language field is missing in %s", m.Path)
-	case m.Language == "python" && (m.LanguageVersion != 2 && m.LanguageVersion != 3):
-		return fmt.Errorf("manifest error: LanguageVersion field for Python should be either 2 or 3")
+	var errMsgs []*string
+	if m.Language == "" {
+		msg := fmt.Sprint("Language field is missing")
+		errMsgs = append(errMsgs, &msg)
+	}
+	if m.Language == "python" && (m.LanguageVersion != 2 && m.LanguageVersion != 3) {
+		msg := fmt.Sprint("LanguageVersion field for Python should be either 2 or 3")
+		errMsgs = append(errMsgs, &msg)
 	}
 	for _, r := range m.Requirements {
-		switch {
-		case r.Name == "":
-			return fmt.Errorf("manifest error: requirement with empty name field in %s", m.Path)
+		if r.Name == "" {
+			msg := fmt.Sprint("unknown requirement (empty name field)")
+			errMsgs = append(errMsgs, &msg)
 		}
+	}
+	if len(errMsgs) > 0 {
+		return NewValidationError(m.Path, errMsgs)
 	}
 	return nil
 }

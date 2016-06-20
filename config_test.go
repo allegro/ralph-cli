@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -36,7 +34,7 @@ func init() {
 	}
 }
 
-// Helper process for TestCreatePythonVenv and ... XXX
+// Helper process for TestCreatePythonVenv.
 func TestDummyHelperProcess(t *testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
 		return
@@ -53,6 +51,7 @@ func TestGetConfig(t *testing.T) {
 		"#0 Everything OK": {
 			fixtureFile: "config.toml",
 			want: &Config{
+				Path:                   filepath.Join(configTestFixturesDir, "config.toml"),
 				Debug:                  false,
 				LogOutput:              "",
 				ClientTimeout:          10,
@@ -94,6 +93,7 @@ func TestGetConfig(t *testing.T) {
 		"#5 Some missing fields (e.g. ClientTimeout) are supplemented from DefaultCfg": {
 			fixtureFile: "config_missing_fields.toml",
 			want: &Config{
+				Path:                   filepath.Join(configTestFixturesDir, "config_missing_fields.toml"),
 				Debug:                  false,
 				LogOutput:              "",
 				ClientTimeout:          10,
@@ -220,7 +220,7 @@ func TestValidateManifest(t *testing.T) {
 					{Name: "python-hpilo", Version: "3.8"},
 				},
 			},
-			want: fmt.Errorf("manifest error: Language field is missing in %s", manifestPath),
+			want: fmt.Errorf("validation error in %s: Language field is missing", manifestPath),
 		},
 		"#2 Invalid LanguageVersion for Python": {
 			manifest: &Manifest{
@@ -232,7 +232,7 @@ func TestValidateManifest(t *testing.T) {
 					{Name: "python-hpilo", Version: "3.8"},
 				},
 			},
-			want: errors.New("manifest error: LanguageVersion field for Python should be either 2 or 3"),
+			want: fmt.Errorf("validation error in %s: LanguageVersion field for Python should be either 2 or 3", manifestPath),
 		},
 		"#3 Requirement with empty Name field": {
 			manifest: &Manifest{
@@ -244,14 +244,21 @@ func TestValidateManifest(t *testing.T) {
 					{Name: "", Version: "3.8"},
 				},
 			},
-			want: fmt.Errorf("manifest error: requirement with empty name field in %s", manifestPath),
+			want: fmt.Errorf("validation error in %s: unknown requirement (empty name field)", manifestPath),
 		},
 	}
 
 	for tn, tc := range cases {
 		got := tc.manifest.validate()
-		if !reflect.DeepEqual(got, tc.want) {
-			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		switch {
+		case tc.want == nil:
+			if got != tc.want {
+				t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+			}
+		default:
+			if got.Error() != tc.want.Error() {
+				t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+			}
 		}
 	}
 }

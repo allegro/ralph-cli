@@ -77,12 +77,6 @@ func TestRun(t *testing.T) {
 		ManagementUserName:     "some_user",
 		ManagementUserPassword: "some_password",
 	}
-	script := Script{
-		Name:      "idrac.py",
-		LocalPath: "/path/to/homedir/.ralph-cli/scripts/idrac.py",
-		RepoURL:   "",
-		Manifest:  nil,
-	}
 	want := &ScanResult{
 		MACAddresses: []MACAddress{
 			macs["aa:aa:aa:aa:aa:aa"],
@@ -108,24 +102,59 @@ func TestRun(t *testing.T) {
 		SN: "UUUZZZ1",
 	}
 
-	got, err := script.Run("10.20.30.40", config)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	var cases = map[string]struct {
+		addrToScan Addr
+		config     *Config
+		script     Script
+		want       *ScanResult
+	}{
+		"#0 Python script with manifest": {
+			addrToScan: Addr("10.20.30.40"),
+			config:     config,
+			script: Script{
+				Path:     "/path/to/homedir/.ralph-cli/scripts/script_with_manifest.py",
+				Manifest: &Manifest{Language: "python"},
+			},
+			want: want,
+		},
+		"#1 Python script without manifest": {
+			addrToScan: Addr("10.20.30.40"),
+			config:     config,
+			script: Script{
+				Path:     "/path/to/homedir/.ralph-cli/scripts/script_without_manifest.py",
+				Manifest: nil,
+			},
+			want: want,
+		},
 	}
-	if eq, err := checkers.DeepEqual(got, want); !eq {
-		t.Errorf("\n%s", err)
+	for tn, tc := range cases {
+		got, err := tc.script.Run(tc.addrToScan, tc.config)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("%s\n%s", tn, err)
+		}
 	}
 }
 
 func TestNewScript(t *testing.T) {
 	cfgDir, baseDir, err := GetTempCfgDir()
 	defer os.RemoveAll(baseDir)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	want := Script{
-		Name:      "idrac.py",
-		LocalPath: filepath.Join(cfgDir, "scripts", "idrac.py"),
-		RepoURL:   "",
-		Manifest:  nil,
+		Path: filepath.Join(cfgDir, "scripts", "idrac.py"),
+		Manifest: &Manifest{
+			Path:            filepath.Join(cfgDir, "scripts", "idrac.toml"),
+			Language:        "python",
+			LanguageVersion: 3,
+			Requirements: []requirement{
+				{Name: "requests", Version: "2.10.0"},
+			},
+		},
 	}
 
 	got, err := NewScript("idrac.py", cfgDir)

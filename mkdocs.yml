@@ -1,0 +1,17 @@
+site_name: ralph-cli
+repo_url: https://github.com/allegro/ralph/
+pages:
+  - Overview: index.md
+  - Quickstart: quickstart.md
+  - Key Concepts: concepts.md
+  - Change Log: changelog.md
+  - Ideas for Future Development: ideas.md
+  - License: license.md
+theme: readthedocs
+strict: true
+dev_addr: 0.0.0.0:8000
+markdown_extensions:
+  - toc:
+      permalink: True
+extra_css:
+  - custom.css

@@ -62,6 +62,16 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 		fmt.Println("No changes detected.")
 		return
 	}
+	// When IP address is marked as "exposed in DHCP" in Ralph, then the only way to delete
+	// EthernetComponent associated with its MAC addres is through a suitable transition
+	// from Ralph's GUI (i.e., it is not possible via REST API by desing). Therefore, we need
+	// to exclude such EthernetComponents from diff.Delete.
+	if len(diff.Delete) > 0 {
+		diff, err = ExcludeExposedInDHCP(diff, client, false)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
 	_, err = SendDiffToRalph(client, diff, dryRun, false)
 	if err != nil {
 		log.Fatalln(err)

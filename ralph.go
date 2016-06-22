@@ -170,27 +170,10 @@ func (e EthernetComponent) String() string {
 // This function should be considered as a temporary solution, and will be removed once
 // similar functionality will be implemented in Ralph's API.
 func ExcludeMgmt(eths []*EthernetComponent, ip Addr, c *Client) ([]*EthernetComponent, error) {
-
-	type IPAddress struct {
-		IsMgmt   bool `json:"is_management"`
-		Ethernet *EthernetComponent
-	}
-
-	type IPAddressList struct {
-		Count   int
-		Results []IPAddress
-	}
-
 	var ethsFiltered []*EthernetComponent
-
-	q := fmt.Sprintf("address=%s", ip)
-	rawBody, err := c.GetFromRalph(APIEndpoints["IPAddress"], q)
+	addrs, err := getIPAddresses(fmt.Sprintf("address=%s", ip), c)
 	if err != nil {
 		return nil, err
-	}
-	var addrs IPAddressList
-	if err := json.Unmarshal(rawBody, &addrs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling IPAddress: %v", err)
 	}
 	// IP addresses are unique in Ralph, so there's no need to check for addrs.Count > 1.
 	if addrs.Count == 0 || !addrs.Results[0].IsMgmt {
@@ -281,6 +264,34 @@ func (a *Addr) GetBaseObject(c *Client) (*BaseObject, error) {
 	}
 }
 
+// IPAddress is a helper type, i.e. its instances are not meant to be sent to Ralph.
+// TODO(xor-xor): Consider merging IPAddress with Addr type.
+type IPAddress struct {
+	Address      string
+	IsMgmt       bool `json:"is_management"`
+	ExposeInDHCP bool `json:"dhcp_expose"`
+	Ethernet     *EthernetComponent
+}
+
+// IPAddressList represents the shape of data returned by Ralph for IPAddress endpoint.
+type IPAddressList struct {
+	Count   int
+	Results []IPAddress
+}
+
+// getIPAddress is a helper function for querying "ipaddresses" endpoint.
+func getIPAddresses(query string, c *Client) (*IPAddressList, error) {
+	var addrs IPAddressList
+	rawBody, err := c.GetFromRalph(APIEndpoints["IPAddress"], query)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(rawBody, &addrs); err != nil {
+		return nil, fmt.Errorf("error while unmarshaling IPAddress: %v", err)
+	}
+	return &addrs, nil
+}
+
 // DiffEthernetComponent represents a set of changes to be made on some EthernetComponents
 // associated with a BaseObject (e.g., network cards inserted to a bare-metal host).
 // These  changes are grouped in three categories: Create, Update and Delete accounting
@@ -354,6 +365,45 @@ func SendDiffToRalph(c *Client, d *DiffEthernetComponent, dryRun bool, noOutput 
 		}
 	}
 	return statusCodes, nil
+}
+
+// ExcludeExposedInDHCP takes DiffEthernetComponent, and examines EthernetComponents from d.Delete list.
+// In (quite unlikely, but possible) case of finding such EthernetComponent, it is excluded from said diff,
+// and warning message is printed for user (unless noOutput is set to true, which is meant for testing).
+func ExcludeExposedInDHCP(d *DiffEthernetComponent, c *Client, noOutput bool) (*DiffEthernetComponent, error) {
+	var ethsFiltered []*EthernetComponent
+	for _, ec := range d.Delete {
+		ip, err := checkIfExposedInDHCP(&ec.MACAddress, c)
+		if err != nil {
+			return nil, err
+		}
+		if ip.Address != "" {
+			if !noOutput {
+				fmt.Printf("WARNING: EthernetComponent with MAC address %s cannot be deleted, "+
+					"because IP address associated with it (%s) is marked as \"exposed in DHCP\" "+
+					"in Ralph. Please use a suitable transition from Ralph's GUI for that.\n",
+					ec.MACAddress.String(), ip.Address) // TODO(xor-xor): Use logger instead.
+			}
+			continue
+		}
+		ethsFiltered = append(ethsFiltered, ec)
+	}
+	d.Delete = ethsFiltered
+	return d, nil
+}
+
+// checkIfExposedInDHCP is a helper function for ExcludeExposedInDHCP.
+func checkIfExposedInDHCP(m *MACAddress, c *Client) (IPAddress, error) {
+	addrs, err := getIPAddresses(fmt.Sprintf("ethernet__mac=%s", m.String()), c)
+	if err != nil {
+		return IPAddress{}, err
+	}
+	for _, ip := range addrs.Results {
+		if ip.ExposeInDHCP == true {
+			return ip, nil
+		}
+	}
+	return IPAddress{}, nil
 }
 
 // CompareEthernetComponents compares two sets of EthernetComponents (old and new) and

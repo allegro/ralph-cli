@@ -32,13 +32,15 @@ At the initial run, `ralph-cli` creates `~/.ralph-cli` directory, where its
 config file (`config.toml`) is stored (along with `scripts` sub-directory - more
 on this later). Its contents should look like this:
 
-    Debug = false
-    LogOutput = ""
-    ClientTimeout = 10
-    RalphAPIURL = "change_me"
-    RalphAPIKey = "change_me"
-    ManagementUserName = "change_me"
-    ManagementUserPassword = "change_me"
+```no-highlight
+Debug = false
+LogOutput = ""
+ClientTimeout = 10
+RalphAPIURL = "change_me"
+RalphAPIKey = "change_me"
+ManagementUserName = "change_me"
+ManagementUserPassword = "change_me"
+```
 
 Before doing anything, you need to replace dummy defaults denoted by
 `"change_me` string. For the meaning of those settings, see
@@ -65,15 +67,19 @@ information manually (e.g. MAC addresses of these 4 NICs), but this is rather
 cumbersome, error-prone and time-consuming. `ralph-cli` to the rescue! You can
 achieve the same thing by issuing:
 
-    ralph-cli scan 11.22.33.44 --script=idrac.py --dry-run
+```no-highlight
+ralph-cli scan 11.22.33.44 --script=idrac.py --dry-run
+```
 
 ...which would produce output similar to this:
 
-    INFO: Running in dry-run mode, no changes will be saved in Ralph.
-    EthernetComponent with MAC address a1:b2:c3:d4:e5:aa created successfully.
-    EthernetComponent with MAC address a1:b2:c3:d4:e5:bb created successfully.
-    EthernetComponent with MAC address a1:b2:c3:d4:e5:cc created successfully.
-    EthernetComponent with MAC address a1:b2:c3:d4:e5:dd created successfully.
+```no-highlight
+INFO: Running in dry-run mode, no changes will be saved in Ralph.
+EthernetComponent with MAC address a1:b2:c3:d4:e5:aa created successfully.
+EthernetComponent with MAC address a1:b2:c3:d4:e5:bb created successfully.
+EthernetComponent with MAC address a1:b2:c3:d4:e5:cc created successfully.
+EthernetComponent with MAC address a1:b2:c3:d4:e5:dd created successfully.
+```
 
 Notice that we are running `ralph-cli` in "dry-run" mode, which is a good idea
 when you need some sort of control over your data. After examining this output
@@ -86,7 +92,9 @@ again. Well, try it and see by yourself! Unless you've changed something in the
 hardware of your server (e.g. replaced some network card), you should see this
 message:
 
-    No changes detected.
+```no-highlight
+No changes detected.
+```
 
 And it means that the state of your server in Ralph reflects its actual state
 (at least in terms of components visible to `idrac.py` script).

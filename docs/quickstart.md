@@ -5,26 +5,13 @@ The following section provides the info regarding how to prepare and use
 your iDRAC/iLO host, and save its result to Ralph (at this moment, it will be
 limited only to MAC addresses, but that is going to change soon!).
 
-## Getting ralph-cli binary
+## Installation
 
-You can either [download][releases] a pre-built binary for your OS/architecture,
-or build it from the source code. In the former case, skip to the
-[next sub-section][self-config], otherwise read on.
-
-`ralph-cli` is written in Go and uses [Glide][glide] for managing its
-dependencies, so assuming that you already have it installed on your system (see
-instructions for this [here][glide-install]), and that you have cloned
-`ralph-cli`'s repo to your `$GOPATH`, all you have to do is to issue `glide install`
-command and then `go build` (or `go install`, if you prefer to make your Go
-binaries that way).
-
-If you are a die-hard Go programmer that uses only stdlib for everything, you can
-proceed in a usual way, i.e. by issuing `go get github.com/allegro/ralph-cli`,
-but in such case, you need to handle `ralph-cli`'s dependencies by
-yourself. This shouldn't be difficult, though.
-
-Either way, after building your binary, you can verify it by issuing
-`ralph-cli --help` - it should give you a simple usage screen.
+You can download a pre-built, self-contained `ralph-cli` executable from
+[here][releases]. If your OS/architecture is not listed there, you can either
+request it from us by opening an issue on [our GitHub profile][issues], or build
+it from the source code. In the latter case, please refer to
+[How to build ralph-cli?][development-build] section.
 
 ## Configuring ralph-cli
 
@@ -117,9 +104,9 @@ your host (e.g. access to interpreter, required libraries etc.).
 [concepts-scan]: concepts.md#scan
 [concepts-contract]: concepts.md#scripts-contract
 [concepts-scripts]: concepts.md#scripts
+[development-build]: development.md#how-to-build-ralph-cli
 
 [releases]: https://github.com/allegro/ralph-cli/releases
-[glide]: https://github.com/Masterminds/glide
-[glide-install]: https://github.com/Masterminds/glide#install
+[issues]: https://github.com/allegro/ralph-cli/issues
 [pip]: https://pip.pypa.io/en/stable/installing/
 [virtualenv]: https://packaging.python.org/en/latest/installing/#creating-and-using-virtual-environments

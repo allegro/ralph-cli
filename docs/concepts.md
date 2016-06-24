@@ -49,7 +49,7 @@ file, and it is subject to change until version `1.0.0` is reached.
 
 Scan is one of the commands available via `ralph-cli` (well, at this moment,
 this is the only command available, but we are going to add more - see section
-[Ideas for Future Development](ideas.md)). The idea behind this is simple:
+[Ideas for Future Development][ideas]). The idea behind this is simple:
 
 1. Access a host given as an IP address (via iDRAC, iLO, Puppet, SSH or whatever
    method you'd find useful).
@@ -129,8 +129,8 @@ any extra packages, apart from the ones provided by the standard library.
 
 ## Scripts Contract
 
-As mentioned in the [Quickstart][quickstart-further], scan scripts can be
-written in any language you want, as long as you have means for launching
+As mentioned in the [Going further][quickstart-further] section, scan scripts
+can be written in any language you want, as long as you have means for launching
 them. But in order to tame this diversity, they need some well-defined way to
 communicate with `ralph-cli` binary. And here comes our Scripts Contract, which
 describes exactly this.
@@ -300,12 +300,13 @@ i.e. subject to change).
 ```
 
 If you have any thoughts on this (or if you need to add something here), please
-let us know by opening a new issue on [our GitHub profile][ralph-cli-issues].
+let us know by opening a new issue on [our GitHub profile][issues].
 
 
 [self-contract]: concepts.md#scripts-contract
 [quickstart-further]: quickstart.md#going-further
+[ideas]: development.md#ideas-for-future-development
 
 [TOML]: https://github.com/toml-lang/toml
 [virtualenv]: https://packaging.python.org/en/latest/installing/#creating-and-using-virtual-environments
-[ralph-cli-issues]: https://github.com/allegro/ralph-cli/issues
+[issues]: https://github.com/allegro/ralph-cli/issues

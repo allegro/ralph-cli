@@ -10,9 +10,6 @@ from xml.etree import ElementTree as ET
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-USER = os.environ['MANAGEMENT_USER_NAME']
-PASS = os.environ['MANAGEMENT_USER_PASSWORD']
-
 SCHEMA = "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2"
 XMLNS_S = "{http://www.w3.org/2003/05/soap-envelope}"
 XMLNS_WSEN = "{http://schemas.xmlsoap.org/ws/2004/09/enumeration}"

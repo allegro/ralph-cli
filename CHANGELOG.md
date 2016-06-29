@@ -2,7 +2,7 @@
 
 ## 0.1.0
 
-Released on (TBA)
+Released on June 29, 2016.
 
 * Ability to handle Python virtual environments.
 * Initial version of manifest files for scan scripts.

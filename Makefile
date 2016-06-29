@@ -13,14 +13,16 @@ deps:
 release: clean deps
 	go get github.com/laher/goxc
 	goxc -wc -pv=$$VERSION
-	@echo "Adding commit with updated '.goxc.json' file."
+	@echo "Adding commit with updated '.goxc.json' file..."
 	git add .goxc.json
 	git commit -m "Bumped PackageVersion in .goxc.json to $$VERSION."
-	git tag -a -m "Release of ralph-cli $$VERSION." $$VERSION
+	@echo "Adding release tag..."
+	git tag -a -m "Release of ralph-cli v$$VERSION." v$$VERSION
+	@echo "Pushing changes to origin..."
+	git push --follow-tags origin master
 	@echo "Releasing binaries for supported platforms/OSs with version: $$VERSION..."
 	goxc -tasks-=go-install,go-vet,go-test
 	@echo "Done."
-	@echo "Remember to manually push release commits/tag to origin/master (with 'git push --follow-tags origin master')."
 
 clean:
 	rm -rf dist

@@ -1,8 +1,4 @@
-# ralph-cli
-
-[![Build Status](https://travis-ci.org/allegro/ralph-cli.svg?branch=develop)](https://travis-ci.org/allegro/ralph-cli)
-[![Coverage Status](https://coveralls.io/repos/github/allegro/ralph-cli/badge.svg?branch=develop)](https://coveralls.io/github/allegro/ralph-cli?branch=develop)
-[![Documentation Status](https://readthedocs.org/projects/ralph-cli/badge/?version=latest)](http://ralph-cli.readthedocs.io/en/latest/?badge=latest)
+# Overview
 
 `ralph-cli` is a command-line interface for [Ralph][ralph]. Its goal is to serve
 as a "Swiss Army knife" for all the Ralph's functionality that is reasonable
@@ -28,18 +24,7 @@ You should start with [Quickstart](quickstart.md) to get up and running
 quickly. You may want to consult [Key Concepts](concepts.md) section as well,
 which is meant to be used as a more detailed reference.
 
-
-## License
-
-`ralph-cli` is licensed under the [Apache License, v2.0][apache]. Copyright (c)
-2016 [Allegro Group][allegro]
-
-[development-ideas]: http://ralph-cli.readthedocs.io/en/latest/development/#ideas-for-future-development
-[quickstart]: http://ralph-cli.readthedocs.io/en/latest/quickstart/
-[concepts]: http://ralph-cli.readthedocs.io/en/latest/concepts/
+[development-ideas]: development.md#ideas-for-future-development
 
 [ralph]: https://github.com/allegro/ralph
 [ralph-cli]: https://github.com/allegro/ralph-cli
-[glide]: https://github.com/Masterminds/glide
-[apache]: http://www.apache.org/licenses/LICENSE-2.0
-[allegro]: http://allegrogroup.com

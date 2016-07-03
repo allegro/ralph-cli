@@ -24,8 +24,8 @@ longer maintained, but you can still find its code on the `beast` branch
 
 ## Where to go next?
 
-You should start with [Quickstart](quickstart.md) to get up and running
-quickly. You may want to consult [Key Concepts](concepts.md) section as well,
+You should start with [Quickstart][quickstart] to get up and running
+quickly. You may want to consult [Key Concepts][concepts] section as well,
 which is meant to be used as a more detailed reference.
 
 

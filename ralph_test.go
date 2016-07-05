@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -32,67 +33,55 @@ func TestNewAddr(t *testing.T) {
 	}
 }
 
-func TestNewEthernetComponent(t *testing.T) {
+func TestEthernetIsEqualTo(t *testing.T) {
 	var cases = map[string]struct {
-		mac     MACAddress
-		baseObj *BaseObject
-		speed   string
-		want    *EthernetComponent
-	}{
-		"#0 No speed provided": {
-			macs["aa:bb:cc:dd:ee:ff"],
-			&BaseObject{1},
-			"",
-			&EthernetComponent{0, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "unknown speed", ""},
-		},
-	}
-	for tn, tc := range cases {
-		got := NewEthernetComponent(tc.mac, tc.baseObj, tc.speed)
-		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
-			t.Errorf("%s\n%s", tn, err)
-		}
-	}
-}
-
-func TestIsEqualTo(t *testing.T) {
-	var cases = map[string]struct {
-		ec1  *EthernetComponent
-		ec2  *EthernetComponent
+		ec1  *Ethernet
+		ec2  Component
 		want bool
 	}{
 		"#0 All equal": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
 			true,
 		},
 		"#1 All different": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{2, BaseObject{2}, macs["aa:aa:aa:aa:aa:aa"], "eth0", "10 Gbps", "Intel Corporation 82599EB 10-Gigabit SFI/SFP"},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{2, BaseObject{2}, macs["aa:aa:aa:aa:aa:aa"], "Intel Corporation 82599EB 10-Gigabit SFI/SFP", "10 Gbps", "1.1.1"},
 			false,
 		},
 		"#2 Different BaseObject.ID": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{1, BaseObject{2}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{2}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
 			false,
 		},
 		"#3 Different MACAddress": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{1, BaseObject{1}, macs["aa:aa:aa:aa:aa:aa"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:aa:aa:aa:aa:aa"], "", "", ""},
 			false,
 		},
-		"#4 Different Label": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "eth0", "", ""},
+		"#4 Different Model": {
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "Intel Corporation 82599EB 10-Gigabit SFI/SFP", "", ""},
 			false,
 		},
 		"#5 Different Speed": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "10 Gbps", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "10 Gbps", ""},
 			false,
 		},
-		"#6 Different Model": {
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", "Intel Corporation 82599EB 10-Gigabit SFI/SFP"},
+		"#6 Different FirmwareVersion": {
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", "1.1.1"},
+			false,
+		},
+		"#7 Component given as object, not pointer": {
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			true,
+		},
+		"#8 Component other than Ethernet given": {
+			&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			FakeComponent{},
 			false,
 		},
 	}
@@ -105,31 +94,87 @@ func TestIsEqualTo(t *testing.T) {
 
 }
 
-func TestContains(t *testing.T) {
+func TestMemoryIsEqualTo(t *testing.T) {
 	var cases = map[string]struct {
-		eths []*EthernetComponent
+		ec1  *Memory
+		ec2  Component
+		want bool
+	}{
+		"#0 All equal": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			true,
+		},
+		"#1 All different": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			&Memory{2, BaseObject{2}, "DIMM", 4096, 1333},
+			false,
+		},
+		"#2 Different BaseObject.ID": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			&Memory{1, BaseObject{2}, "Samsung DDR3 DIMM", 16384, 1600},
+			false,
+		},
+		"#3 Different ModelName": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			&Memory{1, BaseObject{1}, "DIMM", 16384, 1600},
+			false,
+		},
+		"#4 Different Size": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 4096, 1600},
+			false,
+		},
+		"#5 Different Speed": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1333},
+			false,
+		},
+		"#6 Component given as object, not pointer": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			true,
+		},
+		"#7 Component other than Memory given": {
+			&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			FakeComponent{},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := tc.ec1.IsEqualTo(tc.ec2)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+
+}
+
+func TestMACIsInEths(t *testing.T) {
+	var cases = map[string]struct {
+		eths []*Ethernet
 		mac  MACAddress
 		want bool
 	}{
 		"#0 Contains": {
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				&EthernetComponent{2, BaseObject{2}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
+			[]*Ethernet{
+				&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+				&Ethernet{2, BaseObject{2}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
 			},
 			macs["aa:bb:cc:dd:ee:ff"],
 			true,
 		},
 		"#1 Doesn't contain": {
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				&EthernetComponent{2, BaseObject{2}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
+			[]*Ethernet{
+				&Ethernet{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+				&Ethernet{2, BaseObject{2}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
 			},
 			macs["aa:aa:aa:aa:aa:aa"],
 			false,
 		},
 	}
 	for tn, tc := range cases {
-		got := contains(tc.eths, tc.mac)
+		got := tc.mac.IsIn(tc.eths)
 		if got != tc.want {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}
@@ -187,137 +232,146 @@ func TestGetBaseObject(t *testing.T) {
 	}
 }
 
-func TestExcludeMgmt(t *testing.T) {
-	var cases = []struct {
-		file string
-		eths []*EthernetComponent
-		ip   Addr
-		want []*EthernetComponent
-	}{
-		{
-			"exclude_mgmt.json",
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				&EthernetComponent{2, BaseObject{2}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-				&EthernetComponent{3, BaseObject{3}, macs["74:86:7a:ee:20:e8"], "", "", ""},
-			},
-			"10.20.30.40",
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				&EthernetComponent{2, BaseObject{2}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-			},
-		},
-	}
-
-	for tn, tc := range cases {
-		fixture, err := LoadFixture(ralphTestFixturesDir, tc.file)
-		if err != nil {
-			t.Fatalf("file: %s\n%s", tc.file, err)
-		}
-		server, client := MockServerClient(200, fixture)
-		defer server.Close()
-
-		got, err := ExcludeMgmt(tc.eths, tc.ip, client)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
-			t.Errorf("#%d\n%s", tn, err)
-		}
-
-	}
-}
-
-func TestIsEmpty(t *testing.T) {
+func TestCompareEthernets(t *testing.T) {
 	var cases = map[string]struct {
-		diff *DiffEthernetComponent
-		want bool
-	}{
-		"#0 Is empty": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{},
-			},
-			true,
-		},
-		"#1 Is not empty": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-				},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{},
-			},
-			false,
-		},
-	}
-	for tn, tc := range cases {
-		got := tc.diff.IsEmpty()
-		if got != tc.want {
-			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
-		}
-	}
-}
-
-func TestCompareEthernetComponents(t *testing.T) {
-	var cases = map[string]struct {
-		ethsOld []*EthernetComponent
-		ethsNew []*EthernetComponent
-		want    *DiffEthernetComponent
+		ethsOld []*Ethernet
+		ethsNew []*Ethernet
+		want    *Diff
 	}{
 		"#0 Empty diff": {
-			[]*EthernetComponent{},
-			[]*EthernetComponent{},
-			&DiffEthernetComponent{Create: []*EthernetComponent{}, Update: []*EthernetComponent{}, Delete: []*EthernetComponent{}},
+			[]*Ethernet{},
+			[]*Ethernet{},
+			&Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
 		},
 		"#1 Create": {
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-			},
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-				&EthernetComponent{0, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-			},
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{
-					&EthernetComponent{0, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+			ethsOld: []*Ethernet{
+				&Ethernet{
+					ID:              1,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+					ModelName:       "Intel(R) Ethernet",
+					Speed:           "1 Gbps",
+					FirmwareVersion: "1.1.1",
 				},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{},
+			},
+			ethsNew: []*Ethernet{
+				&Ethernet{
+					ID:              1,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+					ModelName:       "Intel(R) Ethernet",
+					Speed:           "1 Gbps",
+					FirmwareVersion: "1.1.1",
+				},
+				&Ethernet{
+					ID:              0,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["aa:bb:cc:dd:ee:ff"],
+					ModelName:       "Intel(R) Ethernet",
+					Speed:           "10 Gbps",
+					FirmwareVersion: "2.2.2",
+				},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:   0,
+						Name: "Ethernet",
+						Data: []byte(`{"id":0,"base_object":1,"mac":"aa:bb:cc:dd:ee:ff","model_name":"Intel(R) Ethernet","speed":4,"firmware_version":"2.2.2"}`),
+						Component: &Ethernet{
+							ID:              0,
+							BaseObject:      BaseObject{1},
+							MACAddress:      macs["aa:bb:cc:dd:ee:ff"],
+							ModelName:       "Intel(R) Ethernet",
+							Speed:           "10 Gbps",
+							FirmwareVersion: "2.2.2",
+						},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
 			},
 		},
 		"#2 Update": {
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-			},
-			[]*EthernetComponent{
-				&EthernetComponent{0, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "eth0", "10 Gbps", ""},
-			},
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{},
-				Update: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "eth0", "10 Gbps", ""},
+			ethsOld: []*Ethernet{
+				&Ethernet{
+					ID:              1,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+					ModelName:       "",
+					Speed:           "1 Gbps",
+					FirmwareVersion: "1.1.1",
 				},
-				Delete: []*EthernetComponent{},
+			},
+			ethsNew: []*Ethernet{
+				&Ethernet{
+					ID:              0,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+					ModelName:       "Intel(R) Ethernet",
+					Speed:           "10 Gbps",
+					FirmwareVersion: "2.2.2",
+				},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{
+					&DiffComponent{
+						ID:   1,
+						Name: "Ethernet",
+						Data: []byte(`{"id":1,"base_object":1,"mac":"a1:b2:c3:d4:e5:f6","model_name":"Intel(R) Ethernet","speed":4,"firmware_version":"2.2.2"}`),
+						Component: &Ethernet{
+							ID:              1,
+							BaseObject:      BaseObject{1},
+							MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+							ModelName:       "Intel(R) Ethernet",
+							Speed:           "10 Gbps",
+							FirmwareVersion: "2.2.2",
+						},
+					},
+				},
+				Delete: []*DiffComponent{},
 			},
 		},
 		"#3 Delete": {
-			[]*EthernetComponent{
-				&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
+			ethsOld: []*Ethernet{
+				&Ethernet{
+					ID:              1,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+					ModelName:       "Intel(R) Ethernet",
+					Speed:           "1 Gbps",
+					FirmwareVersion: "1.1.1",
+				},
 			},
-			[]*EthernetComponent{},
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
+			ethsNew: []*Ethernet{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:   1,
+						Name: "Ethernet",
+						Data: []byte(`{"id":1,"base_object":1,"mac":"a1:b2:c3:d4:e5:f6","model_name":"Intel(R) Ethernet","speed":3,"firmware_version":"1.1.1"}`),
+						Component: &Ethernet{
+							ID:              1,
+							BaseObject:      BaseObject{1},
+							MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+							ModelName:       "Intel(R) Ethernet",
+							Speed:           "1 Gbps",
+							FirmwareVersion: "1.1.1",
+						},
+					},
 				},
 			},
 		},
 	}
 	for tn, tc := range cases {
-		got, err := CompareEthernetComponents(tc.ethsOld, tc.ethsNew)
+		got, err := CompareEthernets(tc.ethsOld, tc.ethsNew)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -327,17 +381,152 @@ func TestCompareEthernetComponents(t *testing.T) {
 	}
 }
 
-func TestGetEthernetComponents(t *testing.T) {
+func TestCompareMemory(t *testing.T) {
+	var cases = map[string]struct {
+		memOld []*Memory
+		memNew []*Memory
+		want   *Diff
+	}{
+		"#0 Empty diff": {
+			memOld: []*Memory{},
+			memNew: []*Memory{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#1 Create": {
+			memOld: []*Memory{},
+			memNew: []*Memory{
+				&Memory{0, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "Memory",
+						Data:      []byte(`{"base_object":1,"id":0,"model_name":"Samsung DDR3 DIMM","size":16384,"speed":1600}`),
+						Component: &Memory{0, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#2 Delete (old > new && new > 0)": {
+			memOld: []*Memory{
+				&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+				&Memory{2, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			memNew: []*Memory{
+				&Memory{0, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Memory",
+						Data:      []byte(`{"base_object":1,"id":1,"model_name":"Samsung DDR3 DIMM","size":16384,"speed":1600}`),
+						Component: &Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+					},
+				},
+			},
+		},
+		"#3 Delete (old > new && new == 0)": {
+			memOld: []*Memory{
+				&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			memNew: []*Memory{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Memory",
+						Data:      []byte(`{"base_object":1,"id":1,"model_name":"Samsung DDR3 DIMM","size":16384,"speed":1600}`),
+						Component: &Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+					},
+				},
+			},
+		},
+		// Note that we test "Delete and Create" scenario instead of "Update" -
+		// in case of Memory, the latter doesn't make sense because Memory
+		// instances are not unique (in contrast to e.g. Ethernet, whose
+		// instances can be distinguished by their MACAddresses).
+		"#4 Delete and Create": {
+			memOld: []*Memory{
+				&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			memNew: []*Memory{
+				&Memory{0, BaseObject{1}, "DIMM", 4096, 1333},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "Memory",
+						Data:      []byte(`{"base_object":1,"id":0,"model_name":"DIMM","size":4096,"speed":1333}`),
+						Component: &Memory{0, BaseObject{1}, "DIMM", 4096, 1333},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Memory",
+						Data:      []byte(`{"base_object":1,"id":1,"model_name":"Samsung DDR3 DIMM","size":16384,"speed":1600}`),
+						Component: &Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+					},
+				},
+			},
+		},
+		"#5 Don't do anything (both new and old Memory is the same)": {
+			memOld: []*Memory{
+				&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			memNew: []*Memory{
+				&Memory{0, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+	}
+	for tn, tc := range cases {
+		got, err := CompareMemory(tc.memOld, tc.memNew)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(*got, *tc.want); !eq {
+			t.Errorf("%s\n%s", tn, err)
+		}
+	}
+}
+
+func TestGetEthernets(t *testing.T) {
 	var cases = []struct {
 		file    string
 		baseObj BaseObject
-		want    []*EthernetComponent
+		want    []*Ethernet
 	}{
 		{
 			"ethernet_components.json",
 			BaseObject{1},
-			[]*EthernetComponent{
-				&EthernetComponent{2, BaseObject{1}, macs["a1:b2:c3:d4:e5:f6"], "eth0", "10 Gbps", ""},
+			[]*Ethernet{
+				&Ethernet{
+					ID:              2,
+					BaseObject:      BaseObject{1},
+					MACAddress:      macs["a1:b2:c3:d4:e5:f6"],
+					ModelName:       "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
+					Speed:           "10 Gbps",
+					FirmwareVersion: "1.1.1",
+				},
 			},
 		},
 	}
@@ -350,7 +539,7 @@ func TestGetEthernetComponents(t *testing.T) {
 		server, client := MockServerClient(200, fixture)
 		defer server.Close()
 
-		got, err := tc.baseObj.GetEthernetComponents(client)
+		got, err := tc.baseObj.GetEthernets(client)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -360,124 +549,23 @@ func TestGetEthernetComponents(t *testing.T) {
 	}
 }
 
-// TODO(xor-xor): Refactor SendDiffToRalph (or better yet, MockServerClient) to support
-// testing scenarios, where multiple, different HTTP status codes are returned.
-func TestSendDiffToRalph(t *testing.T) {
-	var cases = map[string]struct {
-		diff       *DiffEthernetComponent
-		dryRun     bool
-		statusCode int
-		want       []int
+func TestGetMemory(t *testing.T) {
+	var cases = []struct {
+		file    string
+		baseObj BaseObject
+		want    []*Memory
 	}{
-		"#0 Empty diff": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{},
-			},
-			false,
-			0, // In this case, statusCode doesn't really matter.
-			[]int{},
-		},
-		"#1 Dry run": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{
-					&EthernetComponent{0, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
+		{
+			"memory_components.json",
+			BaseObject{1},
+			[]*Memory{
+				&Memory{
+					ID:         2,
+					BaseObject: BaseObject{1},
+					ModelName:  "Samsung DDR3 DIMM",
+					Size:       16384,
+					Speed:      1600,
 				},
-				Update: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{2}, macs["aa:aa:aa:aa:aa:aa"], "", "", ""},
-				},
-				Delete: []*EthernetComponent{
-					&EthernetComponent{2, BaseObject{3}, macs["a1:b2:c3:d4:e5:f6"], "", "", ""},
-				},
-			},
-			true,
-			0, // In this case, statusCode doesn't really matter.
-			[]int{},
-		},
-		"#2 Create": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{
-					&EthernetComponent{0, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{},
-			},
-			false,
-			201,
-			[]int{201},
-		},
-		"#3 Update": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{},
-				Update: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				},
-				Delete: []*EthernetComponent{},
-			},
-			false,
-			200,
-			[]int{200},
-		},
-		"#4 Delete": {
-			&DiffEthernetComponent{
-				Create: []*EthernetComponent{},
-				Update: []*EthernetComponent{},
-				Delete: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				},
-			},
-			false,
-			204,
-			[]int{204},
-		},
-	}
-
-	for tn, tc := range cases {
-		server, client := MockServerClient(tc.statusCode, `{}`)
-		defer server.Close()
-
-		got, err := SendDiffToRalph(client, tc.diff, tc.dryRun, true)
-		if err != nil {
-			t.Fatalf("%s\nerr: %s", tn, err)
-		}
-		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
-			t.Errorf("%s\n%s", tn, err)
-		}
-	}
-}
-
-func TestExcludeExposedInDHCP(t *testing.T) {
-	var cases = map[string]struct {
-		diff       *DiffEthernetComponent
-		statusCode int
-		file       string
-		want       *DiffEthernetComponent
-	}{
-		"#0 Not exposed in DHCP shouldn't be excluded": {
-			diff: &DiffEthernetComponent{
-				Delete: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				},
-			},
-			statusCode: 200,
-			file:       "exclude_exposed_in_dhcp_false.json",
-			want: &DiffEthernetComponent{
-				Delete: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				},
-			},
-		},
-		"#1 Exposed in DHCP should be excluded": {
-			diff: &DiffEthernetComponent{
-				Delete: []*EthernetComponent{
-					&EthernetComponent{1, BaseObject{1}, macs["aa:bb:cc:dd:ee:ff"], "", "", ""},
-				},
-			},
-			statusCode: 200,
-			file:       "exclude_exposed_in_dhcp_true.json",
-			want: &DiffEthernetComponent{
-				Delete: []*EthernetComponent{},
 			},
 		},
 	}
@@ -487,15 +575,73 @@ func TestExcludeExposedInDHCP(t *testing.T) {
 		if err != nil {
 			t.Fatalf("file: %s\n%s", tc.file, err)
 		}
-		server, client := MockServerClient(tc.statusCode, fixture)
+		server, client := MockServerClient(200, fixture)
 		defer server.Close()
 
-		got, err := ExcludeExposedInDHCP(tc.diff, client, true)
+		got, err := tc.baseObj.GetMemory(client)
 		if err != nil {
-			t.Fatalf("%s\nerr: %s", tn, err)
+			t.Fatalf("err: %s", err)
 		}
 		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
-			t.Errorf("%s\n%s", tn, err)
+			t.Errorf("#%d\n%s", tn, err)
 		}
 	}
+}
+
+func TestEthernetToString(t *testing.T) {
+	ethernet := Ethernet{
+		ID:              1,
+		BaseObject:      BaseObject{1},
+		MACAddress:      macs["aa:aa:aa:aa:aa:aa"],
+		ModelName:       "Intel Corporation 82599EB 10-Gigabit SFI/SFP",
+		Speed:           "10 Gbps",
+		FirmwareVersion: "1.1.1",
+	}
+	want := `Ethernet{id: 1, base_object_id: 1, mac: aa:aa:aa:aa:aa:aa, model_name: Intel Corporation 82599EB 10-Gigabit SFI/SFP, speed: 10 Gbps, firmware_version: 1.1.1}`
+
+	got := ethernet.String()
+	if got != want {
+		t.Errorf("\n got: %v\nwant: %v", got, want)
+	}
+}
+
+func TestMemoryToString(t *testing.T) {
+	memory := Memory{
+		ID:         1,
+		BaseObject: BaseObject{1},
+		ModelName:  "Samsung DDR3 DIMM",
+		Size:       16384,
+		Speed:      1600,
+	}
+	want := `Memory{id: 1, base_object_id: 1, model_name: Samsung DDR3 DIMM, size: 16384, speed: 1600}`
+
+	got := memory.String()
+	if got != want {
+		t.Errorf("\n got: %v\nwant: %v", got, want)
+	}
+}
+
+func TestSpeedMarshalJSON(t *testing.T) {
+	var cases = []struct {
+		speed Speed
+		want  []byte
+	}{
+		{"10 Mbps", []byte(strconv.Itoa(ethSpeedChoices["10 Mbps"]))},
+		{"100 Mbps", []byte(strconv.Itoa(ethSpeedChoices["100 Mbps"]))},
+		{"1 Gbps", []byte(strconv.Itoa(ethSpeedChoices["1 Gbps"]))},
+		{"10 Gbps", []byte(strconv.Itoa(ethSpeedChoices["10 Gbps"]))},
+		{"40 Gbps", []byte(strconv.Itoa(ethSpeedChoices["40 Gbps"]))},
+		{"100 Gbps", []byte(strconv.Itoa(ethSpeedChoices["100 Gbps"]))},
+		{"unknown speed", []byte(strconv.Itoa(ethSpeedChoices["unknown speed"]))},
+	}
+	for _, tc := range cases {
+		got, err := tc.speed.MarshalJSON()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !TestEqByte(got, tc.want) {
+			t.Errorf("\n got: %v\nwant: %v", got, tc.want)
+		}
+	}
+
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -42,30 +43,45 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if err != nil {
 		log.Fatalln(err)
 	}
-	oldEths, err := baseObj.GetEthernetComponents(client)
-	// TODO(xor-xor): ExcludeMgmt should be removed when similar functionality will be implemented
-	// in Ralph's API. Therefore, it should be considered as a temporary solution.
+
+	var changesDetected bool
+	if changed := getEthernets(addr, result, baseObj, client, dryRun); changed {
+		changesDetected = true
+	}
+	if changed := getMemory(result, baseObj, client, dryRun); changed {
+		changesDetected = true
+	}
+	if !changesDetected {
+		fmt.Println("No changes detected.")
+	}
+}
+
+func getEthernets(addr Addr, result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	oldEths, err := baseObj.GetEthernets(client)
+	// TODO(xor-xor): ExcludeMgmt should be removed when similar functionality
+	// will be implemented in Ralph's API. Therefore, it should be considered as
+	// a temporary solution.
 	oldEths, err = ExcludeMgmt(oldEths, addr, client)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	var newEths []*EthernetComponent
-	for _, mac := range result.MACAddresses {
-		eth := NewEthernetComponent(mac, baseObj, "")
-		newEths = append(newEths, eth)
+	var newEths []*Ethernet
+	for i := 0; i < len(result.Ethernets); i++ {
+		result.Ethernets[i].BaseObject = *baseObj
+		newEths = append(newEths, &result.Ethernets[i])
 	}
-	diff, err := CompareEthernetComponents(oldEths, newEths)
+	diff, err := CompareEthernets(oldEths, newEths)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	if diff.IsEmpty() {
-		fmt.Println("No changes detected.")
-		return
+		return false
 	}
-	// When IP address is marked as "exposed in DHCP" in Ralph, then the only way to delete
-	// EthernetComponent associated with its MAC addres is through a suitable transition
-	// from Ralph's GUI (i.e., it is not possible via REST API by desing). Therefore, we need
-	// to exclude such EthernetComponents from diff.Delete.
+	// When IP address is marked as "exposed in DHCP" in Ralph, then the only
+	// way to delete Ethernet associated with its MAC address is through a
+	// suitable transition from Ralph's GUI (i.e., it is not possible via REST
+	// API by desing). Therefore, we need to exclude such Ethernets from
+	// diff.Delete.
 	if len(diff.Delete) > 0 {
 		diff, err = ExcludeExposedInDHCP(diff, client, false)
 		if err != nil {
@@ -76,4 +92,98 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if err != nil {
 		log.Fatalln(err)
 	}
+	return true
+}
+
+func getMemory(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	oldMem, err := baseObj.GetMemory(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	var newMem []*Memory
+	for i := 0; i < len(result.Memory); i++ {
+		result.Memory[i].BaseObject = *baseObj
+		newMem = append(newMem, &result.Memory[i])
+	}
+
+	diff, err := CompareMemory(oldMem, newMem)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if diff.IsEmpty() {
+		return false
+	}
+	_, err = SendDiffToRalph(client, diff, dryRun, false)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return true
+}
+
+// ExcludeMgmt filters eths by excluding Ethernets associated with given IP
+// address, but only when such address is a management one.
+// This function should be considered as a temporary solution, and will be removed once
+// similar functionality will be implemented in Ralph's API.
+func ExcludeMgmt(eths []*Ethernet, ip Addr, c *Client) ([]*Ethernet, error) {
+	var ethsFiltered []*Ethernet
+	addrs, err := getIPAddresses(fmt.Sprintf("address=%s", ip), c)
+	if err != nil {
+		return nil, err
+	}
+	// IP addresses are unique in Ralph, so there's no need to check for addrs.Count > 1.
+	if addrs.Count == 0 || !addrs.Results[0].IsMgmt {
+		return eths, nil
+	}
+	for _, eth := range eths {
+		if eth.ID != addrs.Results[0].Ethernet.ID {
+			ethsFiltered = append(ethsFiltered, eth)
+		}
+	}
+	return ethsFiltered, nil
+}
+
+// ExcludeExposedInDHCP takes Diff, and examines Ethernets from d.Delete
+// list. In quite unlikely, but possible case of finding such Ethernet, it will
+// excluded from said diff, and warning message will be printed for user (if
+// noOutput is set to true, then no message will be printed - this is meant for
+// testing).
+func ExcludeExposedInDHCP(diff *Diff, c *Client, noOutput bool) (*Diff, error) {
+	var ethsFiltered []*DiffComponent
+	for _, d := range diff.Delete {
+		switch ec := d.Component.(type) {
+		case *Ethernet:
+			ip, err := checkIfExposedInDHCP(&ec.MACAddress, c)
+			if err != nil {
+				return nil, err
+			}
+			if ip.Address != "" {
+				if !noOutput {
+					fmt.Printf("WARNING: Ethernet with MAC address %s cannot be deleted, "+
+						"because IP address associated with it (%s) is marked as \"exposed in DHCP\" "+
+						"in Ralph. Please use a suitable transition from Ralph's GUI for that.\n",
+						ec.MACAddress.String(), ip.Address) // TODO(xor-xor): Use logger instead.
+				}
+				continue
+			}
+		default:
+			return nil, errors.New("unknown type in Ethernet context (ExcludeExposedInDHCP function)")
+		}
+		ethsFiltered = append(ethsFiltered, d)
+	}
+	diff.Delete = ethsFiltered
+	return diff, nil
+}
+
+// checkIfExposedInDHCP is a helper function for ExcludeExposedInDHCP.
+func checkIfExposedInDHCP(m *MACAddress, c *Client) (IPAddress, error) {
+	addrs, err := getIPAddresses(fmt.Sprintf("ethernet__mac=%s", m.String()), c)
+	if err != nil {
+		return IPAddress{}, err
+	}
+	for _, ip := range addrs.Results {
+		if ip.ExposeInDHCP == true {
+			return ip, nil
+		}
+	}
+	return IPAddress{}, nil
 }

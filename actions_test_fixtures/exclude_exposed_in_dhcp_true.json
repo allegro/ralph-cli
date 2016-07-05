@@ -4,14 +4,14 @@
         {
             "address": "11.11.11.11",
             "ethernet": {
-                "label": "",
-                "mac": "aa:bb:cc:dd:ee:ff",
+                "id": 1,
                 "base_object": {
                     "id": 1
                 },
-                "model": null,
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "model_name": "Intel(R) Ethernet",
                 "speed": "unknown speed",
-                "id": 1
+                "firmware_version": "1.1.1"
             },
             "is_management": true,
             "dhcp_expose": true

@@ -78,9 +78,8 @@ func getEthernets(addr Addr, result *ScanResult, baseObj *BaseObject, client *Cl
 		return false
 	}
 	// When IP address is marked as "exposed in DHCP" in Ralph, then the only
-	// way to delete Ethernet associated with its MAC address is through a
-	// suitable transition from Ralph's GUI (i.e., it is not possible via REST
-	// API by desing). Therefore, we need to exclude such Ethernets from
+	// way to delete Ethernet associated with its MAC address is through a so
+	// called "transition". Therefore, we need to exclude such Ethernets from
 	// diff.Delete.
 	if len(diff.Delete) > 0 {
 		diff, err = ExcludeExposedInDHCP(diff, client, false)

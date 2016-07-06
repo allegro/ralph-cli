@@ -62,10 +62,10 @@ ralph-cli scan 11.22.33.44 --script=idrac.py --dry-run
 
 ```no-highlight
 INFO: Running in dry-run mode, no changes will be saved in Ralph.
-EthernetComponent with MAC address a1:b2:c3:d4:e5:aa created successfully.
-EthernetComponent with MAC address a1:b2:c3:d4:e5:bb created successfully.
-EthernetComponent with MAC address a1:b2:c3:d4:e5:cc created successfully.
-EthernetComponent with MAC address a1:b2:c3:d4:e5:dd created successfully.
+Ethernet with MAC address a1:b2:c3:d4:e5:aa created successfully.
+Ethernet with MAC address a1:b2:c3:d4:e5:bb created successfully.
+Ethernet with MAC address a1:b2:c3:d4:e5:cc created successfully.
+Ethernet with MAC address a1:b2:c3:d4:e5:dd created successfully.
 ```
 
 Notice that we are running `ralph-cli` in "dry-run" mode, which is a good idea

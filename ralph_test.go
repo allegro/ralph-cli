@@ -35,8 +35,8 @@ func TestNewAddr(t *testing.T) {
 
 func TestEthernetIsEqualTo(t *testing.T) {
 	var cases = map[string]struct {
-		ec1  *Ethernet
-		ec2  Component
+		eth  *Ethernet
+		comp Component
 		want bool
 	}{
 		"#0 All equal": {
@@ -86,7 +86,7 @@ func TestEthernetIsEqualTo(t *testing.T) {
 		},
 	}
 	for tn, tc := range cases {
-		got := tc.ec1.IsEqualTo(tc.ec2)
+		got := tc.eth.IsEqualTo(tc.comp)
 		if got != tc.want {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}
@@ -96,8 +96,8 @@ func TestEthernetIsEqualTo(t *testing.T) {
 
 func TestMemoryIsEqualTo(t *testing.T) {
 	var cases = map[string]struct {
-		ec1  *Memory
-		ec2  Component
+		mem  *Memory
+		comp Component
 		want bool
 	}{
 		"#0 All equal": {
@@ -142,12 +142,71 @@ func TestMemoryIsEqualTo(t *testing.T) {
 		},
 	}
 	for tn, tc := range cases {
-		got := tc.ec1.IsEqualTo(tc.ec2)
+		got := tc.mem.IsEqualTo(tc.comp)
 		if got != tc.want {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}
 	}
+}
 
+func TestFibreChannelCardIsEqualTo(t *testing.T) {
+	var cases = map[string]struct {
+		fc   *FibreChannelCard
+		comp Component
+		want bool
+	}{
+		"#0 All equal": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			true,
+		},
+		"#1 All different": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{2, BaseObject{2}, "Generic FC Card", "1 Gbit", "eeffeeffeeffeeff", "2.2.2"},
+			false,
+		},
+		"#2 Different BaseObject.ID": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{1, BaseObject{2}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			false,
+		},
+		"#3 Different ModelName": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			false,
+		},
+		"#4 Different Speed": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "1 Gbit", "aabbccddeeff0011", "1.1.1"},
+			false,
+		},
+		"#5 Different WWN": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "eeffeeffeeffeeff", "1.1.1"},
+			false,
+		},
+		"#6 Different FirmwareVersion": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "2.2.2"},
+			false,
+		},
+		"#7 Component given as object, not pointer": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			true,
+		},
+		"#8 Component other than FibreChannelCard given": {
+			&FibreChannelCard{1, BaseObject{1}, "Saturn-X: LightPulse Fibre Channel Host Adapter", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			FakeComponent{},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := tc.fc.IsEqualTo(tc.comp)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
 }
 
 func TestMACIsInEths(t *testing.T) {
@@ -457,7 +516,7 @@ func TestCompareMemory(t *testing.T) {
 		// in case of Memory, the latter doesn't make sense because Memory
 		// instances are not unique (in contrast to e.g. Ethernet, whose
 		// instances can be distinguished by their MACAddresses).
-		"#4 Delete and Create": {
+		"#4 Update by \"Delete and Create\"": {
 			memOld: []*Memory{
 				&Memory{1, BaseObject{1}, "Samsung DDR3 DIMM", 16384, 1600},
 			},
@@ -500,6 +559,141 @@ func TestCompareMemory(t *testing.T) {
 	}
 	for tn, tc := range cases {
 		got, err := CompareMemory(tc.memOld, tc.memNew)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(*got, *tc.want); !eq {
+			t.Errorf("%s\n%s", tn, err)
+		}
+	}
+}
+
+func TestCompareFibreChannelCards(t *testing.T) {
+	var cases = map[string]struct {
+		fccOld []*FibreChannelCard
+		fccNew []*FibreChannelCard
+		want   *Diff
+	}{
+		"#0 Empty diff": {
+			fccOld: []*FibreChannelCard{},
+			fccNew: []*FibreChannelCard{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#1 Create": {
+			fccOld: []*FibreChannelCard{},
+			fccNew: []*FibreChannelCard{
+				&FibreChannelCard{0, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "FibreChannelCard",
+						Data:      []byte(`{"id":0,"base_object":1,"model_name":"Generic FC Card","speed":3,"wwn":"aabbccddeeff0011","firmware_version":"1.1.1"}`),
+						Component: &FibreChannelCard{0, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#2 Delete (old > new && new > 0)": {
+			fccOld: []*FibreChannelCard{
+				&FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "1 Gbit", "", "1.1.1"},
+				&FibreChannelCard{2, BaseObject{1}, "Generic FC Card", "1 Gbit", "", "1.1.1"},
+				&FibreChannelCard{3, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "2.2.2"},
+			},
+			fccNew: []*FibreChannelCard{
+				&FibreChannelCard{0, BaseObject{1}, "Generic FC Card", "1 Gbit", "", "1.1.1"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "FibreChannelCard",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"Generic FC Card","speed":1,"wwn":"","firmware_version":"1.1.1"}`),
+						Component: &FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "1 Gbit", "", "1.1.1"},
+					},
+					&DiffComponent{
+						ID:        3,
+						Name:      "FibreChannelCard",
+						Data:      []byte(`{"id":3,"base_object":1,"model_name":"Generic FC Card","speed":3,"wwn":"aabbccddeeff0011","firmware_version":"2.2.2"}`),
+						Component: &FibreChannelCard{3, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "2.2.2"},
+					},
+				},
+			},
+		},
+		"#3 Delete (old > new && new == 0)": {
+			fccOld: []*FibreChannelCard{
+				&FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			},
+			fccNew: []*FibreChannelCard{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "FibreChannelCard",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"Generic FC Card","speed":3,"wwn":"aabbccddeeff0011","firmware_version":"1.1.1"}`),
+						Component: &FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+					},
+				},
+			},
+		},
+		// Note that we test "Delete and Create" scenario instead of "Update" -
+		// in case of FibreChannelCard, the latter doesn't make sense because
+		// FibreChannelCard instances are not guaranteed to be unique (and
+		// that's because WWN field is not required).
+		"#4 Update by \"Delete and Create\"": {
+			fccOld: []*FibreChannelCard{
+				&FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "", "1.1.1"},
+			},
+			fccNew: []*FibreChannelCard{
+				&FibreChannelCard{0, BaseObject{1}, "Generic FC Card", "4 Gbit", "", "2.2.2"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "FibreChannelCard",
+						Data:      []byte(`{"id":0,"base_object":1,"model_name":"Generic FC Card","speed":3,"wwn":"","firmware_version":"2.2.2"}`),
+						Component: &FibreChannelCard{0, BaseObject{1}, "Generic FC Card", "4 Gbit", "", "2.2.2"},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "FibreChannelCard",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"Generic FC Card","speed":3,"wwn":"","firmware_version":"1.1.1"}`),
+						Component: &FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "", "1.1.1"},
+					},
+				},
+			},
+		},
+		"#5 Don't do anything (both new and old FibreChannelCard is the same)": {
+			fccOld: []*FibreChannelCard{
+				&FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			},
+			fccNew: []*FibreChannelCard{
+				&FibreChannelCard{1, BaseObject{1}, "Generic FC Card", "4 Gbit", "aabbccddeeff0011", "1.1.1"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+	}
+	for tn, tc := range cases {
+		got, err := CompareFibreChannelCards(tc.fccOld, tc.fccNew)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -588,6 +782,46 @@ func TestGetMemory(t *testing.T) {
 	}
 }
 
+func TestGetFibreChannelCard(t *testing.T) {
+	var cases = []struct {
+		file    string
+		baseObj BaseObject
+		want    []*FibreChannelCard
+	}{
+		{
+			"fibre_channel_card_components.json",
+			BaseObject{1},
+			[]*FibreChannelCard{
+				&FibreChannelCard{
+					ID:              2,
+					BaseObject:      BaseObject{1},
+					ModelName:       "Saturn-X: LightPulse Fibre Channel Host Adapter",
+					Speed:           "4 Gbit",
+					WWN:             "aabbccddeeff0011",
+					FirmwareVersion: "1.1.1",
+				},
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		fixture, err := LoadFixture(ralphTestFixturesDir, tc.file)
+		if err != nil {
+			t.Fatalf("file: %s\n%s", tc.file, err)
+		}
+		server, client := MockServerClient(200, fixture)
+		defer server.Close()
+
+		got, err := tc.baseObj.GetFibreChannelCards(client)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("#%d\n%s", tn, err)
+		}
+	}
+}
+
 func TestEthernetToString(t *testing.T) {
 	ethernet := Ethernet{
 		ID:              1,
@@ -621,9 +855,26 @@ func TestMemoryToString(t *testing.T) {
 	}
 }
 
-func TestSpeedMarshalJSON(t *testing.T) {
+func TestFibreChannelCardToString(t *testing.T) {
+	memory := FibreChannelCard{
+		ID:              1,
+		BaseObject:      BaseObject{1},
+		ModelName:       "Saturn-X: LightPulse Fibre Channel Host Adapter",
+		Speed:           "4 Gbit",
+		WWN:             "aabbccddeeff0011",
+		FirmwareVersion: "1.1.1",
+	}
+	want := `FibreChannelCard{id: 1, base_object_id: 1, model_name: Saturn-X: LightPulse Fibre Channel Host Adapter, speed: 4 Gbit, wwn: aabbccddeeff0011, firmware_version: 1.1.1}`
+
+	got := memory.String()
+	if got != want {
+		t.Errorf("\n got: %v\nwant: %v", got, want)
+	}
+}
+
+func TestEthSpeedMarshalJSON(t *testing.T) {
 	var cases = []struct {
-		speed Speed
+		speed EthSpeed
 		want  []byte
 	}{
 		{"10 Mbps", []byte(strconv.Itoa(ethSpeedChoices["10 Mbps"]))},
@@ -643,5 +894,28 @@ func TestSpeedMarshalJSON(t *testing.T) {
 			t.Errorf("\n got: %v\nwant: %v", got, tc.want)
 		}
 	}
+}
 
+func TestFCCSpeedMarshalJSON(t *testing.T) {
+	var cases = []struct {
+		speed FCCSpeed
+		want  []byte
+	}{
+		{"1 Gbit", []byte(strconv.Itoa(fccSpeedChoices["1 Gbit"]))},
+		{"2 Gbit", []byte(strconv.Itoa(fccSpeedChoices["2 Gbit"]))},
+		{"4 Gbit", []byte(strconv.Itoa(fccSpeedChoices["4 Gbit"]))},
+		{"8 Gbit", []byte(strconv.Itoa(fccSpeedChoices["8 Gbit"]))},
+		{"16 Gbit", []byte(strconv.Itoa(fccSpeedChoices["16 Gbit"]))},
+		{"32 Gbit", []byte(strconv.Itoa(fccSpeedChoices["32 Gbit"]))},
+		{"unknown speed", []byte(strconv.Itoa(fccSpeedChoices["unknown speed"]))},
+	}
+	for _, tc := range cases {
+		got, err := tc.speed.MarshalJSON()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !TestEqByte(got, tc.want) {
+			t.Errorf("\n got: %v\nwant: %v", got, tc.want)
+		}
+	}
 }

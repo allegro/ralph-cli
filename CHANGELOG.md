@@ -4,7 +4,7 @@
 
 Released on (TBA)
 
-* `scan` command: added `Ethernet` and `Memory` components.
+* `scan` command: added `Ethernet`, `Memory` and `FibreChannelCard` components.
 
 ## 0.1.0
 

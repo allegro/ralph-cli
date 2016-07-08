@@ -1,0 +1,15 @@
+{
+    "count": 1,
+    "results": [
+        {
+            "id": 2,
+            "base_object": {
+                "id": 1
+            },
+            "model_name": "Saturn-X: LightPulse Fibre Channel Host Adapter",
+            "speed": "4 Gbit",
+            "wwn": "aabbccddeeff0011",
+            "firmware_version": "1.1.1"
+        }
+    ]
+}

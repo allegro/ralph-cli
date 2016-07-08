@@ -2,9 +2,9 @@
 
 import json
 import os
-import re
 import sys
 import uuid
+from copy import deepcopy
 from xml.etree import ElementTree as ET
 
 import requests
@@ -38,7 +38,6 @@ SOAP_ENUM_WSMAN_TEMPLATE = '''<?xml version="1.0"?>
   </s:Body>
 </s:Envelope>
 '''
-FC_INFO_EXPRESSION = re.compile(r'([0-9]+)-[0-9]+')
 
 MAC_PREFIX_BLACKLIST = [
     '505054', '33506F', '009876', '000000', '00000C', '204153', '149120',
@@ -48,6 +47,43 @@ SERIAL_BLACKLIST = [
     None, '', 'Not Available', 'XxXxXxX', '-----', '[Unknown]', '0000000000',
     'Not Specified', 'YK10CD', '1234567890', 'None', 'To Be Filled By O.E.M.',
 ]
+
+DEVICE_INFO_TEMPLATE = {
+    "model_name": "",
+    "ethernets": [],
+    "memory": [],
+    "fibre_channel_cards": [],
+    "processors": [],
+    "disks": [],
+    "serial_number": "",
+}
+ETHERNET_TEMPLATE = {
+    "mac": "",
+    "model_name": "",
+    "speed": "unknown speed",
+    "firmware_version": "",
+}
+PROCESSOR_TEMPLATE = {
+    "model_name": "",
+    "family": "",
+    "label": "",
+    "index": None,
+    "speed": None,
+    "cores": None,
+}
+MEMORY_TEMPLATE = {
+    "model_name": "",
+    "size": None,
+    "speed": None,
+}
+FIBRE_CHANNEL_CARD_TEMPLATE = {
+    # firmware_version, speed and wwn are unused (iDRAC doesn't provide this info yet).
+    "firmware_version": "",
+    "model_name": "",
+    "speed": "unknown speed",
+    "wwn": "",
+}
+
 
 def normalize_mac_address(mac_address):
     mac_address = mac_address.upper().replace('-', ':')
@@ -120,6 +156,7 @@ class IDRAC(object):
 
 
 def _get_base_info(idrac_manager):
+    device_info = DEVICE_INFO_TEMPLATE
     tree = idrac_manager.run_command('DCIM_SystemView')
     xmlns_n1 = XMLNS_N1_BASE % "DCIM_SystemView"
     q = "{}Body/{}EnumerateResponse/{}Items/{}DCIM_SystemView".format(
@@ -131,22 +168,21 @@ def _get_base_info(idrac_manager):
     records = tree.findall(q)
     if not records:
         raise IdracError("Incorrect answer in the _get_base_info.")
-    result = {
-        'model_name': "{} {}".format(
-            records[0].find(
-                "{}{}".format(xmlns_n1, 'Manufacturer'),
-            ).text.strip().replace(" Inc.", ""),
-            records[0].find(
-                "{}{}".format(xmlns_n1, 'Model'),
-            ).text.strip(),
-        ),
-    }
+    model_name = "{} {}".format(
+        records[0].find(
+            "{}{}".format(xmlns_n1, 'Manufacturer'),
+        ).text.strip().replace(" Inc.", ""),
+        records[0].find(
+            "{}{}".format(xmlns_n1, 'Model'),
+        ).text.strip(),
+    )
     serial_number = records[0].find(
         "{}{}".format(xmlns_n1, 'ChassisServiceTag'),
     ).text.strip()
     if serial_number not in SERIAL_BLACKLIST:
-        result['serial_number'] = serial_number
-    return result
+        device_info['serial_number'] = serial_number
+    device_info['model_name'] = model_name
+    return device_info
 
 
 def _get_ethernets(idrac_manager):
@@ -348,7 +384,7 @@ def _get_disks(idrac_manager):
     return results
 
 
-def _get_fibrechannel_cards(idrac_manager):
+def _get_fibre_channel_cards(idrac_manager):
     tree = idrac_manager.run_command('DCIM_PCIDeviceView')
     xmlns_n1 = XMLNS_N1_BASE % "DCIM_PCIDeviceView"
     q = "{}Body/{}EnumerateResponse/{}Items/{}DCIM_PCIDeviceView".format(
@@ -357,49 +393,26 @@ def _get_fibrechannel_cards(idrac_manager):
         XMLNS_WSMAN,
         xmlns_n1,
     )
-    used_ids = set()
-    results = []
+    fc_cards = []
     for record in tree.findall(q):
-        label = record.find(
+        model_name = record.find(
             "{}{}".format(xmlns_n1, "Description"),
         ).text
-        if 'fibre channel' not in label.lower():
+        if 'fibre channel' not in model_name.lower():
             continue
-        match = FC_INFO_EXPRESSION.search(
-            record.find(
-                "{}{}".format(xmlns_n1, "FQDD"),
-            ).text,
-        )
-        if not match:
-            continue
-        physical_id = match.group(1)
-        if physical_id in used_ids:
-            continue
-        used_ids.add(physical_id)
-        results.append({
-            'physical_id': physical_id,
-            'label': label,
-        })
-    return results
+        fc_card = deepcopy(FIBRE_CHANNEL_CARD_TEMPLATE)
+        fc_card['model_name'] = model_name
+        fc_cards.append(fc_card)
+    return fc_cards
 
 
 def idrac_device_info(idrac_manager):
     device_info = _get_base_info(idrac_manager)
-    ethernets = _get_ethernets(idrac_manager)
-    if ethernets:
-        device_info['ethernets'] = ethernets
-    processors = _get_processors(idrac_manager)
-    if processors:
-        device_info['processors'] = processors
-    memory = _get_memory(idrac_manager)
-    if memory:
-        device_info['memory'] = memory
-    disks = _get_disks(idrac_manager)
-    if disks:
-        device_info['disks'] = disks
-    fibrechannel_cards = _get_fibrechannel_cards(idrac_manager)
-    if fibrechannel_cards:
-        device_info['fibrechannel_cards'] = fibrechannel_cards
+    device_info['ethernets'] = _get_ethernets(idrac_manager)
+    device_info['processors'] = _get_processors(idrac_manager)
+    device_info['memory'] = _get_memory(idrac_manager)
+    device_info['disks'] = _get_disks(idrac_manager)
+    device_info['fibre_channel_cards'] = _get_fibre_channel_cards(idrac_manager)
     return device_info
 
 

@@ -184,7 +184,6 @@ func TestDiffToString(t *testing.T) {
 }
 
 func TestNewDiffComponent(t *testing.T) {
-
 	ethernet := Ethernet{
 		ID:              1,
 		BaseObject:      BaseObject{1},
@@ -200,7 +199,14 @@ func TestNewDiffComponent(t *testing.T) {
 		Size:       16384,
 		Speed:      1600,
 	}
-
+	fcc := FibreChannelCard{
+		ID:              1,
+		BaseObject:      BaseObject{1},
+		ModelName:       "Saturn-X: LightPulse Fibre Channel Host Adapter",
+		Speed:           "4 Gbit",
+		WWN:             "aabbccddeeff0011",
+		FirmwareVersion: "1.1.1",
+	}
 	var cases = map[string]struct {
 		component Component
 		want      *DiffComponent
@@ -248,6 +254,26 @@ func TestNewDiffComponent(t *testing.T) {
 				Name:      "Memory",
 				Data:      []byte(`{"base_object":1,"id":1,"model_name":"Samsung DDR3 DIMM","size":16384,"speed":1600}`),
 				Component: &memory,
+			},
+			errMsg: "",
+		},
+		"#5 FibreChannelCard": {
+			component: fcc,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "FibreChannelCard",
+				Data:      []byte(`{"id":1,"base_object":1,"model_name":"Saturn-X: LightPulse Fibre Channel Host Adapter","speed":3,"wwn":"aabbccddeeff0011","firmware_version":"1.1.1"}`),
+				Component: &fcc,
+			},
+			errMsg: "",
+		},
+		"#6 FibreChannelCard as a pointer": {
+			component: &fcc,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "FibreChannelCard",
+				Data:      []byte(`{"id":1,"base_object":1,"model_name":"Saturn-X: LightPulse Fibre Channel Host Adapter","speed":3,"wwn":"aabbccddeeff0011","firmware_version":"1.1.1"}`),
+				Component: &fcc,
 			},
 			errMsg: "",
 		},

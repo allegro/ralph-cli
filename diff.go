@@ -68,6 +68,15 @@ func NewDiffComponent(component Component) (*DiffComponent, error) {
 		}
 	case Memory:
 		return NewDiffComponent(&v)
+	case *FibreChannelCard:
+		id = v.ID
+		name = "FibreChannelCard"
+		data, err = json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+	case FibreChannelCard:
+		return NewDiffComponent(&v)
 	default:
 		return nil, fmt.Errorf("unknown component: %+v", v)
 	}

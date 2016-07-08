@@ -92,7 +92,11 @@ func (b BaseObject) GetEthernets(c *Client) ([]*Ethernet, error) {
 
 // GetMemory fetches Memory objects associated with given BaseObject.
 func (b BaseObject) GetMemory(c *Client) ([]*Memory, error) {
-	q := fmt.Sprintf("base_object=%d", b.ID)
+	// Hardcoding such things as the limit below is generally a bad idea, but in
+	// this particular case it won't hurt (the maximum number of results that we
+	// expect from 'memory' endpoint is like 16 or maaaaaybe 32; and BTW, the
+	// default limit in Ralph is just 10).
+	q := fmt.Sprintf("base_object=%d&limit=100", b.ID)
 	rawBody, err := c.GetFromRalph(APIEndpoints["Memory"], q)
 	if err != nil {
 		return nil, err
@@ -106,6 +110,25 @@ func (b BaseObject) GetMemory(c *Client) ([]*Memory, error) {
 		memsPtrs[i] = &mems.Results[i]
 	}
 	return memsPtrs, nil
+}
+
+// GetFibreChannelCards fetches FibreChannelCard objects associated with given
+// BaseObject.
+func (b BaseObject) GetFibreChannelCards(c *Client) ([]*FibreChannelCard, error) {
+	q := fmt.Sprintf("base_object=%d", b.ID)
+	rawBody, err := c.GetFromRalph(APIEndpoints["FibreChannelCard"], q)
+	if err != nil {
+		return nil, err
+	}
+	var cards FibreChannelCardList
+	if err := json.Unmarshal(rawBody, &cards); err != nil {
+		return nil, fmt.Errorf("error while unmarshaling FibreChannelCard: %v", err)
+	}
+	cardsPtrs := make([]*FibreChannelCard, cards.Count)
+	for i := 0; i < cards.Count; i++ {
+		cardsPtrs[i] = &cards.Results[i]
+	}
+	return cardsPtrs, nil
 }
 
 // MACAddress represents a physical address of a network card (Ethernet).
@@ -160,11 +183,11 @@ func (m MACAddress) IsIn(eths []*Ethernet) bool {
 	return false
 }
 
-// Speed of the Ethernet device (e.g. "10 Mbps").
-type Speed string
+// EthSpeed is the speed of the Ethernet device (e.g. "10 Mbps").
+type EthSpeed string
 
-// Helper lookup table for Speed.MarshalJSON/UnmarshalJSON.
-var ethSpeedChoices = map[Speed]int{
+// Helper lookup table for EthSpeed.MarshalJSON/UnmarshalJSON.
+var ethSpeedChoices = map[EthSpeed]int{
 	"10 Mbps":       1,
 	"100 Mbps":      2,
 	"1 Gbps":        3,
@@ -174,19 +197,50 @@ var ethSpeedChoices = map[Speed]int{
 	"unknown speed": 11,
 }
 
-// MarshalJSON converts Speed from string to an integer code ("choice" in Django
-// REST Framework terminology) - for a list of valid values, see the output of
-// OPTIONS request on Ralph's API ethernets endpoint.
-// This method is necessary, because Ralph's API returns Speed as a string
+// MarshalJSON converts EthSpeed from string to an integer code ("choice" in
+// Django REST Framework terminology) - for a list of valid values, see the
+// output of OPTIONS request on Ralph's API ethernets endpoint.
+// This method is necessary, because Ralph's API returns this speed as a string
 // (e.g. "10 Mbps"), but accepts it as an int code (choice).
-func (s Speed) MarshalJSON() ([]byte, error) {
+func (s EthSpeed) MarshalJSON() ([]byte, error) {
 	speed := ethSpeedChoices[s]
 	if speed == 0 {
-		return []byte{}, fmt.Errorf("error marshaling Speed: unknown speed: %s", s)
+		return []byte{}, fmt.Errorf("error marshaling EthSpeed: unknown speed: %s", s)
 	}
 	data, err := json.Marshal(speed)
 	if err != nil {
-		return []byte{}, fmt.Errorf("error marshaling Speed: %v", err)
+		return []byte{}, fmt.Errorf("error marshaling EthSpeed: %v", err)
+	}
+	return data, nil
+}
+
+// FCCSpeed is the speed of the FibreChannelCard (e.g. "32 Gbit").
+type FCCSpeed string
+
+// Helper lookup table for FCCSpeed.MarshalJSON/UnmarshalJSON.
+var fccSpeedChoices = map[FCCSpeed]int{
+	"1 Gbit":        1,
+	"2 Gbit":        2,
+	"4 Gbit":        3,
+	"8 Gbit":        4,
+	"16 Gbit":       5,
+	"32 Gbit":       6,
+	"unknown speed": 11,
+}
+
+// MarshalJSON converts FCCSpeed from string to an integer code ("choice" in
+// Django REST Framework terminology) - for a list of valid values, see the
+// output of OPTIONS request on Ralph's API ethernets endpoint.
+// This method is necessary, because Ralph's API returns this speed as a string
+// (e.g. "32 Gbit"), but accepts it as an int code (choice).
+func (s FCCSpeed) MarshalJSON() ([]byte, error) {
+	speed := fccSpeedChoices[s]
+	if speed == 0 {
+		return []byte{}, fmt.Errorf("error marshaling FCCSpeed: unknown speed: %s", s)
+	}
+	data, err := json.Marshal(speed)
+	if err != nil {
+		return []byte{}, fmt.Errorf("error marshaling FCCSpeed: %v", err)
 	}
 	return data, nil
 }
@@ -204,14 +258,13 @@ type EthernetList struct {
 }
 
 // Ethernet represents a network card on a given host linked to it via
-// BaseObject. Speed field is given as int because it should correspond with
-// OPTIONS on Ethernet API endpoint (see ethSpeedChoices).
+// BaseObject.
 type Ethernet struct {
 	ID              int        `json:"id"`
 	BaseObject      BaseObject `json:"base_object"`
 	MACAddress      MACAddress `json:"mac"`
 	ModelName       string     `json:"model_name"`
-	Speed           Speed      `json:"speed"`
+	Speed           EthSpeed   `json:"speed"`
 	FirmwareVersion string     `json:"firmware_version"`
 }
 
@@ -421,6 +474,8 @@ func CompareMemory(old, new []*Memory) (*Diff, error) {
 	// Diff.Create and Diff.Delete lists.
 	for k, v := range counterNew {
 		switch {
+		case v == counterOld[k]:
+			continue
 		case v > counterOld[k]:
 			// Create (v - counterOld[k]) instances of k.
 			for i := 0; i < v-counterOld[k]; i++ {
@@ -445,14 +500,164 @@ func CompareMemory(old, new []*Memory) (*Diff, error) {
 	// We also need to make sure that keys which are only in counterOld will be
 	// deleted.
 	for k, v := range counterOld {
-		notPresentInNew := false
+		presentInNew := false
 		for kk := range counterNew {
 			if k == kk {
-				continue
+				presentInNew = true
+				break
 			}
-			notPresentInNew = true
 		}
-		if notPresentInNew {
+		if !presentInNew {
+			// Delete v instances of k.
+			for i := 0; i < v; i++ {
+				d, err := NewDiffComponent(oldAsMap[k][i])
+				if err != nil {
+					return nil, err
+				}
+				delete = append(delete, d)
+			}
+		}
+	}
+
+	return &Diff{
+		Create: create,
+		Delete: delete,
+		Update: []*DiffComponent{},
+	}, nil
+}
+
+// FibreChannelCardList represents the shape of data returned by Ralph for
+// FibreChannelCard endpoint.
+type FibreChannelCardList struct {
+	Count   int
+	Results []FibreChannelCard
+}
+
+// FibreChannelCard represents a single fibre channel card/controller on a given
+// host.
+type FibreChannelCard struct {
+	ID              int        `json:"id"`
+	BaseObject      BaseObject `json:"base_object"`
+	ModelName       string     `json:"model_name"`
+	Speed           FCCSpeed   `json:"speed"`
+	WWN             string     `json:"wwn"`
+	FirmwareVersion string     `json:"firmware_version"`
+}
+
+func (f FibreChannelCard) String() string {
+	return fmt.Sprintf("FibreChannelCard{id: %d, base_object_id: %d, model_name: %s, speed: %s, wwn: %s, firmware_version: %s}",
+		f.ID, f.BaseObject.ID, f.ModelName, f.Speed, f.WWN, f.FirmwareVersion)
+}
+
+// IsEqualTo implements Component interface. This method compares two
+// FibreChannelCard objects for equality. Their IDs are not taken into account.
+func (f FibreChannelCard) IsEqualTo(c Component) bool {
+	switch ff := c.(type) {
+	case *FibreChannelCard:
+		switch {
+		case f.BaseObject.ID != ff.BaseObject.ID:
+			return false
+		case f.ModelName != ff.ModelName:
+			return false
+		case f.Speed != ff.Speed:
+			return false
+		case f.WWN != ff.WWN:
+			return false
+		case f.FirmwareVersion != ff.FirmwareVersion:
+			return false
+		default:
+			return true
+		}
+	case FibreChannelCard:
+		return f.IsEqualTo(&ff)
+	default:
+		return false
+	}
+}
+
+// CompareFibreChannelCards compares two sets of FibreChannelCard objects (old
+// and new) and creates a Diff holding detected changes.
+func CompareFibreChannelCards(old, new []*FibreChannelCard) (*Diff, error) {
+	var create, delete []*DiffComponent
+
+	// At first, it may seem that FibreChannelCards can be compared as unique
+	// objects, thanks to WWN, but unfortunately, this field will be empty quite
+	// often, so we have to compare them in the same way as with Memory.
+
+	// Keys for these maps are constructed from all FibreChannelCard field
+	// values *except* ID.
+	counterOld := make(map[string]int)
+	counterNew := make(map[string]int)
+	oldAsMap := make(map[string][]*FibreChannelCard)
+	newAsMap := make(map[string][]*FibreChannelCard)
+
+	// Populate oldAsMap/newAsMap.
+	for _, fc := range old {
+		k := fmt.Sprintf("%d__%s__%s__%s__%s",
+			fc.BaseObject.ID, strings.Replace(fc.ModelName, " ", "_", -1), fc.Speed, fc.WWN, fc.FirmwareVersion)
+		counterOld[k]++
+		oldAsMap[k] = append(oldAsMap[k], fc)
+	}
+	for _, fc := range new {
+		k := fmt.Sprintf("%d__%s__%s__%s__%s",
+			fc.BaseObject.ID, strings.Replace(fc.ModelName, " ", "_", -1), fc.Speed, fc.WWN, fc.FirmwareVersion)
+		counterNew[k]++
+		newAsMap[k] = append(newAsMap[k], fc)
+	}
+
+	if len(new) == 0 {
+		for _, m := range old {
+			d, err := NewDiffComponent(m)
+			if err != nil {
+				return nil, err
+			}
+			delete = append(delete, d)
+		}
+		return &Diff{
+			Create: []*DiffComponent{},
+			Delete: delete,
+			Update: []*DiffComponent{},
+		}, nil
+	}
+
+	// Find the differences between counterNew and counterOld and populate
+	// Diff.Create and Diff.Delete lists.
+	for k, v := range counterNew {
+		switch {
+		case v == counterOld[k]:
+			continue
+		case v > counterOld[k]:
+			// Create (v - counterOld[k]) instances of k.
+			for i := 0; i < v-counterOld[k]; i++ {
+				d, err := NewDiffComponent(newAsMap[k][0])
+				if err != nil {
+					return nil, err
+				}
+				create = append(create, d)
+			}
+		case v < counterOld[k]:
+			// Delete (counterOld[k] - v ) instances of k.
+			for i := 0; i < counterOld[k]-v; i++ {
+				d, err := NewDiffComponent(oldAsMap[k][i])
+				if err != nil {
+					return nil, err
+				}
+				delete = append(delete, d)
+			}
+		}
+	}
+
+	// We also need to make sure that keys which are only in counterOld will be
+	// deleted.
+	for k, v := range counterOld {
+		presentInNew := false
+		for kk := range counterNew {
+			if k == kk {
+				presentInNew = true
+				break
+			}
+		}
+		if !presentInNew {
 			// Delete v instances of k.
 			for i := 0; i < v; i++ {
 				d, err := NewDiffComponent(oldAsMap[k][i])

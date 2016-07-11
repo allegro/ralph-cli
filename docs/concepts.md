@@ -246,9 +246,6 @@ i.e. subject to change).
     "processors": [
         {
             "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "family": "B3", // to be removed
-            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz", // to be removed
-            "index": 1, // to be removed
             "speed": 3600,
             "cores": 8
         }
@@ -258,16 +255,15 @@ i.e. subject to change).
             "firmware": "",
             "model_name": "",
             "speed": "",
-            "wwn": "",
-            "pwwn": "" // ...and any other "wwn" that can be found (we need them all)
+            "wwn": "" // ...and any other "wwn" that can be found (we need them all)
         }
     ],
     "ethernets": [
         {
             "mac": "AA:AA:AA:AA:AA:AA",
             "model_name": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
-            "speed": "", // add if possible
-            "firmware_version": "", // add if possible
+            "speed": "",
+            "firmware_version": "",
         }
     ],
     "disks": [
@@ -283,10 +279,9 @@ i.e. subject to change).
     ],
     "memory": [
         {
-            "label": "Samsung DDR3 DIMM", // should be renamed to "model_name"
+            "model_name": "Samsung DDR3 DIMM",
             "speed": 1600,
-            "size": 16384,
-            "index": 1 // to be removed
+            "size": 16384
         },
     ],
     "software": [

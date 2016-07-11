@@ -65,9 +65,6 @@ ETHERNET_TEMPLATE = {
 }
 PROCESSOR_TEMPLATE = {
     "model_name": "",
-    "family": "",
-    "label": "",
-    "index": None,
     "speed": None,
     "cores": None,
 }
@@ -299,18 +296,13 @@ def _get_processors(idrac_manager):
         except (ValueError, IndexError):
             continue
         results.append({
+            'model_name': model,
+            'speed': int(record.find(
+                "{}{}".format(xmlns_n1, 'CurrentClockSpeed'),
+            ).text.strip()),
             'cores': int(record.find(
                 "{}{}".format(xmlns_n1, 'NumberOfProcessorCores'),
             ).text.strip()),
-            'model_name': model,
-            'speed': int(record.find(
-                "{}{}".format(xmlns_n1, 'MaxClockSpeed'),
-            ).text.strip()),
-            'index': index,
-            'family': record.find(
-                "{}{}".format(xmlns_n1, 'CPUFamily'),
-            ).text.strip(),
-            'label': model,
         })
     return results
 

@@ -209,6 +209,56 @@ func TestFibreChannelCardIsEqualTo(t *testing.T) {
 	}
 }
 
+func TestProcessorIsEqualTo(t *testing.T) {
+	var cases = map[string]struct {
+		mem  *Processor
+		comp Component
+		want bool
+	}{
+		"#0 All equal": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			true,
+		},
+		"#1 All different": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			&Processor{2, BaseObject{2}, "Generic Processor", 2400, 4},
+			false,
+		},
+		"#2 Different BaseObject.ID": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			&Processor{1, BaseObject{2}, "Intel(R) Xeon(R)", 2600, 8},
+			false,
+		},
+		"#3 Different ModelName": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			&Processor{1, BaseObject{1}, "Generic Processor", 2600, 8},
+			false,
+		},
+		"#4 Different Speed": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2400, 8},
+			false,
+		},
+		"#5 Different Cores": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 4},
+			false,
+		},
+		"#6 Component other than Processor given": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			FakeComponent{},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := tc.mem.IsEqualTo(tc.comp)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+}
+
 func TestMACIsInEths(t *testing.T) {
 	var cases = map[string]struct {
 		eths []*Ethernet
@@ -703,6 +753,134 @@ func TestCompareFibreChannelCards(t *testing.T) {
 	}
 }
 
+func TestCompareProcessors(t *testing.T) {
+	var cases = map[string]struct {
+		procsOld []*Processor
+		procsNew []*Processor
+		want     *Diff
+	}{
+		"#0 Empty diff": {
+			procsOld: []*Processor{},
+			procsNew: []*Processor{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#1 Create": {
+			procsOld: []*Processor{},
+			procsNew: []*Processor{
+				&Processor{0, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "Processor",
+						Data:      []byte(`{"id":0,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
+						Component: &Processor{0, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#2 Delete (old > new && new > 0)": {
+			procsOld: []*Processor{
+				&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+				&Processor{2, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			procsNew: []*Processor{
+				&Processor{0, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Processor",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
+						Component: &Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+					},
+				},
+			},
+		},
+		"#3 Delete (old > new && new == 0)": {
+			procsOld: []*Processor{
+				&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			procsNew: []*Processor{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Processor",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
+						Component: &Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+					},
+				},
+			},
+		},
+		// Note that we test "Delete and Create" scenario instead of "Update" -
+		// in case of Processor, the latter doesn't make sense because Processor
+		// instances are not unique (in contrast to e.g. Ethernet, whose
+		// instances can be distinguished by their MACAddresses).
+		"#4 Update by \"Delete and Create\"": {
+			procsOld: []*Processor{
+				&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			procsNew: []*Processor{
+				&Processor{0, BaseObject{1}, "Generic Processor", 2400, 4},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "Processor",
+						Data:      []byte(`{"id":0,"base_object":1,"model_name":"Generic Processor","speed":2400,"cores":4}`),
+						Component: &Processor{0, BaseObject{1}, "Generic Processor", 2400, 4},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Processor",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
+						Component: &Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+					},
+				},
+			},
+		},
+		"#5 Don't do anything (both new and old Processor is the same)": {
+			procsOld: []*Processor{
+				&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			procsNew: []*Processor{
+				&Processor{0, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+	}
+	for tn, tc := range cases {
+		got, err := CompareProcessors(tc.procsOld, tc.procsNew)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(*got, *tc.want); !eq {
+			t.Errorf("%s\n%s", tn, err)
+		}
+	}
+}
+
 func TestGetEthernets(t *testing.T) {
 	var cases = []struct {
 		file    string
@@ -822,6 +1000,45 @@ func TestGetFibreChannelCard(t *testing.T) {
 	}
 }
 
+func TestGetProcessors(t *testing.T) {
+	var cases = []struct {
+		file    string
+		baseObj BaseObject
+		want    []*Processor
+	}{
+		{
+			"processor_components.json",
+			BaseObject{1},
+			[]*Processor{
+				&Processor{
+					ID:         1,
+					BaseObject: BaseObject{1},
+					ModelName:  "Intel(R) Xeon(R)",
+					Speed:      2600,
+					Cores:      8,
+				},
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		fixture, err := LoadFixture(ralphTestFixturesDir, tc.file)
+		if err != nil {
+			t.Fatalf("file: %s\n%s", tc.file, err)
+		}
+		server, client := MockServerClient(200, fixture)
+		defer server.Close()
+
+		got, err := tc.baseObj.GetProcessors(client)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("#%d\n%s", tn, err)
+		}
+	}
+}
+
 func TestEthernetToString(t *testing.T) {
 	ethernet := Ethernet{
 		ID:              1,
@@ -867,6 +1084,22 @@ func TestFibreChannelCardToString(t *testing.T) {
 	want := `FibreChannelCard{id: 1, base_object_id: 1, model_name: Saturn-X: LightPulse Fibre Channel Host Adapter, speed: 4 Gbit, wwn: aabbccddeeff0011, firmware_version: 1.1.1}`
 
 	got := memory.String()
+	if got != want {
+		t.Errorf("\n got: %v\nwant: %v", got, want)
+	}
+}
+
+func TestProcessorToString(t *testing.T) {
+	proc := Processor{
+		ID:         1,
+		BaseObject: BaseObject{1},
+		ModelName:  "Intel(R) Xeon(R)",
+		Speed:      2600,
+		Cores:      8,
+	}
+	want := `Processor{id: 1, base_object_id: 1, model_name: Intel(R) Xeon(R), speed: 2600, cores: 8}`
+
+	got := proc.String()
 	if got != want {
 		t.Errorf("\n got: %v\nwant: %v", got, want)
 	}

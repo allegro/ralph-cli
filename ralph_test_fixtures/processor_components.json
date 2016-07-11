@@ -1,0 +1,14 @@
+{
+    "count": 1,
+    "results": [
+        {
+            "id": 1,
+            "base_object": {
+                "id": 1
+            },
+            "model_name": "Intel(R) Xeon(R)",
+            "speed": 2600,
+            "cores": 8
+        }
+    ]
+}

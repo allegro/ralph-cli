@@ -1,0 +1,14 @@
+{
+    "count": 1,
+    "results": [
+        {
+            "id": 2,
+            "base_object": {
+                "id": 1
+            },
+            "model_name": "Samsung DDR3 DIMM",
+            "size": 16384,
+            "speed": 1600
+        }
+    ]
+}

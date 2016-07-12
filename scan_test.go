@@ -78,23 +78,23 @@ func TestRun(t *testing.T) {
 		ManagementUserPassword: "some_password",
 	}
 	want := &ScanResult{
-		MACAddresses: []MACAddress{
-			macs["aa:aa:aa:aa:aa:aa"],
-			macs["aa:bb:cc:dd:ee:ff"],
-			macs["a1:b2:c3:d4:e5:f6"],
-			macs["74:86:7a:ee:20:e8"],
+		Ethernets: []Ethernet{
+			Ethernet{MACAddress: macs["aa:aa:aa:aa:aa:aa"], ModelName: "Intel(R) Gigabit 4P X520/I350 rNDC", Speed: "1 Gbps", FirmwareVersion: "1.1.1"},
+			Ethernet{MACAddress: macs["aa:bb:cc:dd:ee:ff"], ModelName: "Intel(R) Gigabit 4P X520/I350 rNDC", Speed: "1 Gbps", FirmwareVersion: "1.1.1"},
+			Ethernet{MACAddress: macs["a1:b2:c3:d4:e5:f6"], ModelName: "Intel(R) Ethernet 10G 4P X520/I350 rNDC", Speed: "10 Gbps", FirmwareVersion: "1.1.1"},
+			Ethernet{MACAddress: macs["74:86:7a:ee:20:e8"], ModelName: "Intel(R) Ethernet 10G 4P X520/I350 rNDC", Speed: "10 Gbps", FirmwareVersion: "1.1.1"},
 		},
 		Disks: []Disk{
-			Disk{Name: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1AXNSAD8000000"},
-			Disk{Name: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1AXNSAD8000001"},
+			Disk{ModelName: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1AXNSAD8000000"},
+			Disk{ModelName: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1AXNSAD8000001"},
 		},
 		Memory: []Memory{
-			Memory{Name: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
-			Memory{Name: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
-			Memory{Name: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
-			Memory{Name: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
+			Memory{ModelName: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
+			Memory{ModelName: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
+			Memory{ModelName: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
+			Memory{ModelName: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
 		},
-		Model: "Dell PowerEdge R620",
+		ModelName: "Dell PowerEdge R620",
 		Processors: []Processor{
 			Processor{Name: "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz", Cores: 8, Speed: 3600},
 			Processor{Name: "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz", Cores: 8, Speed: 3600},

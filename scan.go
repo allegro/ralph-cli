@@ -117,16 +117,16 @@ func prepareEnv(oldEnv []string, addrToScan Addr, cfg *Config) (newEnv []string)
 // ScanResult holds parsed output of a scan script.
 type ScanResult struct {
 	// TODO(xor-xor): Consider adding here a field holding an ADDR being scanned.
-	MACAddresses []MACAddress `json:"mac_addresses"`
-	Disks        []Disk
-	Memory       []Memory
 	// TODO(xor-xor): Consider using Model type instead of string here.
-	Model      string `json:"model_name"`
-	Processors []Processor
-	SN         string `json:"serial_number"`
+	Ethernets  []Ethernet  `json:"ethernets"`
+	Disks      []Disk      `json:"disks"`
+	Memory     []Memory    `json:"memory"`
+	ModelName  string      `json:"model_name"`
+	Processors []Processor `json:"processors"`
+	SN         string      `json:"serial_number"`
 }
 
 func (sr ScanResult) String() string {
-	return fmt.Sprintf("MACAddresses: %s\nDisks: %s\nMemory: %s\nModel: %s\nProcessors: %s\nSerial Number: %s\n",
-		sr.MACAddresses, sr.Disks, sr.Memory, sr.Model, sr.Processors, sr.SN)
+	return fmt.Sprintf("Ethernets: %s\nDisks: %s\nMemory: %s\nModelName: %s\nProcessors: %s\nSerial Number: %s\n",
+		sr.Ethernets, sr.Disks, sr.Memory, sr.ModelName, sr.Processors, sr.SN)
 }

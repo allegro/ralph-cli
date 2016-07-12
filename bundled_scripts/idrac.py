@@ -49,7 +49,6 @@ SERIAL_BLACKLIST = [
     'Not Specified', 'YK10CD', '1234567890', 'None', 'To Be Filled By O.E.M.',
 ]
 
-
 def normalize_mac_address(mac_address):
     mac_address = mac_address.upper().replace('-', ':')
     return mac_address
@@ -150,7 +149,73 @@ def _get_base_info(idrac_manager):
     return result
 
 
-def _get_mac_addresses(idrac_manager):
+def _get_ethernets(idrac_manager):
+
+    def get_mac():
+        # e.g. CurrentMACAddress: BB:CC:DD:EE:FF:00
+        try:
+            mac = record.find(
+                "{}{}".format(xmlns_n1, 'CurrentMACAddress'),
+            ).text
+        except AttributeError:
+            mac = None
+        if mac:
+            mac = normalize_mac_address(mac)
+            if mac[:6] in MAC_PREFIX_BLACKLIST:
+                mac = None
+        return mac
+
+    def get_model(mac):
+        # e.g. ProductName: Intel(R) Ethernet 10G 4P X520/I350 rNDC - BB:CC:DD:EE:FF:00
+        try:
+            model = record.find(
+                "{}{}".format(xmlns_n1, 'ProductName'),
+            ).text
+        except AttributeError:
+            model = None
+        if mac in model:
+            mm = []
+            for m in model.split():
+                if len(m) == 1 or mac in m:
+                    continue
+                mm.append(m)
+            model = ' '.join(mm)
+        return model
+
+    def get_speed(model):
+        # Unfortunately, it seems that there's no separate field for this, so
+        # we have to take it from ProductName/model.
+        if not model:
+            speed = "unknown speed"
+        elif "Gigabit" in model:
+            speed = "1 Gbps"
+        else:
+            speeds = {
+                '10M':  "10 Mbps",
+                '100M': "100 Mbps",
+                '1G':   "1 Gbps",
+                '10G':  "10 Gbps",
+                '40G':  "40 Gbps",
+                '100G': "100 Gbps",
+            }
+            for s in speeds.keys():
+                if s in model:
+                    speed = speeds[s]
+                    break
+            else:
+                speed = "unknown speed"
+        return speed
+
+    def get_fw_version():
+        # e.g. FamilyVersion: 15.0.27
+        try:
+            ver = record.find(
+                "{}{}".format(xmlns_n1, 'FamilyVersion'),
+            ).text
+        except AttributeError:
+            ver = None
+        return ver
+
     tree = idrac_manager.run_command('DCIM_NICView')
     xmlns_n1 = XMLNS_N1_BASE % "DCIM_NICView"
     q = "{}Body/{}EnumerateResponse/{}Items/{}DCIM_NICView".format(
@@ -159,21 +224,22 @@ def _get_mac_addresses(idrac_manager):
         XMLNS_WSMAN,
         xmlns_n1,
     )
-    mac_addresses = []
+    ethernets = []
     for record in tree.findall(q):
-        try:
-            mac = record.find(
-                "{}{}".format(xmlns_n1, 'CurrentMACAddress'),
-            ).text
-        except AttributeError:
-            continue
+        mac = get_mac()
         if not mac:
             continue
-        mac = normalize_mac_address(mac)
-        if mac[:6] in MAC_PREFIX_BLACKLIST:
-            continue
-        mac_addresses.append(mac)
-    return mac_addresses
+        model = get_model(mac)
+        speed = get_speed(model)
+        ver = get_fw_version()
+        ethernet = {
+            "mac": mac,
+            "model_name": model,
+            "speed": speed,
+            "firmware_version": ver,
+        }
+        ethernets.append(ethernet)
+    return ethernets
 
 
 def _get_processors(idrac_manager):
@@ -224,7 +290,7 @@ def _get_memory(idrac_manager):
     )
     return [
         {
-            'label': '{} {}'.format(
+            'model_name': '{} {}'.format(
                 record.find(
                     "{}{}".format(xmlns_n1, 'Manufacturer'),
                 ).text.strip(),
@@ -238,8 +304,7 @@ def _get_memory(idrac_manager):
             'speed': int(record.find(
                 "{}{}".format(xmlns_n1, 'Speed'),
             ).text.strip()),
-            'index': index,
-        } for index, record in enumerate(tree.findall(q), start=1)
+        } for record in tree.findall(q)
     ]
 
 
@@ -320,9 +385,9 @@ def _get_fibrechannel_cards(idrac_manager):
 
 def idrac_device_info(idrac_manager):
     device_info = _get_base_info(idrac_manager)
-    mac_addresses = _get_mac_addresses(idrac_manager)
-    if mac_addresses:
-        device_info['mac_addresses'] = mac_addresses
+    ethernets = _get_ethernets(idrac_manager)
+    if ethernets:
+        device_info['ethernets'] = ethernets
     processors = _get_processors(idrac_manager)
     if processors:
         device_info['processors'] = processors
@@ -343,7 +408,7 @@ def scan(host, user, password):
         raise IdracError("No IP address to scan has been provided.")
     if user == "":
         raise IdracError("No management username has been provided.")
-    if host == "":
+    if password == "":
         raise IdracError("No management password has been provided.")
     idrac_manager = IDRAC(host, user, password)
     device_info = idrac_device_info(idrac_manager)

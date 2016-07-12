@@ -149,3 +149,18 @@ func TestEqStr(a, b []string) bool {
 	}
 	return true
 }
+
+// FakeComponent is meant only for tests.
+type FakeComponent struct {
+	FakeField string
+}
+
+// String implements Component interface.
+func (f FakeComponent) String() string {
+	return "fake component"
+}
+
+// IsEqualTo implements Component interface.
+func (f FakeComponent) IsEqualTo(c Component) bool {
+	return false
+}

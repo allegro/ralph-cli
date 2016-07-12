@@ -9,15 +9,12 @@ import (
 	"time"
 )
 
-// APIEndpoints maps datatype names to Ralph's API endpoints associated with them.
+// APIEndpoints maps ralph-cli types to Ralph's API endpoints.
 var APIEndpoints = map[string]string{
-	"PhysicalHost":      "data-center-assets",
-	"VMHost":            "virtual-servers",
-	"CloudHost":         "cloud-hosts",
-	"EthernetComponent": "ethernets",
-	"BaseObject":        "base-objects",
-	"IPAddress":         "ipaddresses",
-	// ...and so on for other data types defined for Ralph
+	"BaseObject": "base-objects",
+	"IPAddress":  "ipaddresses",
+	"Ethernet":   "ethernets",
+	"Memory":     "memory",
 }
 
 // Client provides an interface to interact with Ralph via its REST API.
@@ -55,10 +52,10 @@ func (c *Client) NewRequest(method, urlStr string, body io.Reader) (*http.Reques
 	return req, nil
 }
 
-// SendToRalph sends to Ralph json-ed datatypes (EthernetComponent, PhysicalHost, etc.)
-// using one of the REST methods on a given endpoint.
-// Returned statusCode contains the actual HTTP status code, or a special value 0, which designates
-// the case when there was an error caused by anything else than HTTP status code > 299.
+// SendToRalph sends to Ralph json-ed datatypes (Ethernet, Memory, etc.) using
+// one of the REST methods on a given endpoint. Returned statusCode contains
+// the actual HTTP status code, or a special value 0, which designates the case
+// when there was an error caused by anything else than HTTP status code > 299.
 func (c *Client) SendToRalph(method, endpoint string, data []byte) (statusCode int, err error) {
 	url := fmt.Sprintf("%s/%s/", c.ralphURL, endpoint)
 	var req *http.Request
@@ -98,6 +95,8 @@ func (c *Client) GetFromRalph(endpoint string, query string) ([]byte, error) {
 		return []byte{}, err
 	}
 	resp, err := c.client.Do(req)
+	// TODO(xor-xor): When url points to a non-existing Ralph instance, it
+	// causes panic somewhere around here.
 	defer resp.Body.Close()
 	if err != nil {
 		return []byte{}, err

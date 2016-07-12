@@ -16,10 +16,19 @@ MAC_PREFIX_BLACKLIST = [
 DEVICE_INFO_TEMPLATE = {
     "model_name": "",
     "processors": [],
-    "mac_addresses": [],
+    "ethernets": [],
     "disks": [],          # unused (hpilo doesn't provide such info)
     "serial_number": "",
     "memory": [],
+}
+
+ETHERNET_TEMPLATE = {
+    # model_name, speed and firmware are unused (hpilo doesn't provide such info)
+    "mac": "",
+    "model_name": "",
+    "speed": "unknown speed",
+    "firmware_version": "",
+
 }
 
 PROCESSOR_TEMPLATE = {
@@ -32,10 +41,9 @@ PROCESSOR_TEMPLATE = {
 }
 
 MEMORY_TEMPLATE = {
-    "label": "",
+    "model_name": "",  # unused (hpilo doesn't provide such info)
     "size": None,
     "speed": None,
-    "index": None,  # unused, but similar info is available as "label"
 }
 
 
@@ -43,9 +51,9 @@ class IloError(Exception):
     pass
 
 
-def normalize_mac_address(mac_address):
-    mac_address = mac_address.upper().replace('-', ':')
-    return mac_address
+def normalize_mac(mac):
+    mac = mac.upper().replace('-', ':')
+    return mac
 
 
 def get_ilo_instance(host, user, password):
@@ -53,7 +61,7 @@ def get_ilo_instance(host, user, password):
     return ilo
 
 
-def _get_macs(raw_macs, ilo_version):
+def _get_ethernets(raw_macs, ilo_version):
     # The data structure for MAC addresses returned from hpilo is pretty nasty,
     # especially for iLO3 (no clear distinction between embedded NICs and
     # iSCSI ports).
@@ -61,7 +69,7 @@ def _get_macs(raw_macs, ilo_version):
         start_idx = 0
     else:
         start_idx = 1
-    mac_addresses = []
+    ethernets = []
     for m in raw_macs:
         fields = m.get('fields', [])
         for i in range(start_idx, len(fields), 2):
@@ -69,10 +77,12 @@ def _get_macs(raw_macs, ilo_version):
                 fields[i]['name'] == 'Port' and
                 fields[i]['value'] != 'iLO'  # belongs to mgmt address
             ):
-                mac = normalize_mac_address(fields[i + 1]['value'])
+                mac = normalize_mac(fields[i + 1]['value'])
                 if mac[:6] not in MAC_PREFIX_BLACKLIST:
-                    mac_addresses.append(mac)
-    return mac_addresses
+                    eth = deepcopy(ETHERNET_TEMPLATE)
+                    eth["mac"] = mac
+                    ethernets.append(eth)
+    return ethernets
 
 
 def _get_speed(s):
@@ -112,7 +122,6 @@ def _get_memory(raw_memory):
     memory = []
     for m in raw_memory:
         mem = deepcopy(MEMORY_TEMPLATE)
-        mem['label'] = m.get('Label', "")
         mem['size'] = get_size(m.get('Size'))
         mem['speed'] = _get_speed(m.get('Speed'))
         memory.append(mem)
@@ -206,8 +215,8 @@ def ilo_device_info(ilo_manager, ilo_version):
     host_data = _prepare_host_data(raw_host_data, ilo_version)
     device_info = DEVICE_INFO_TEMPLATE
     device_info['processors'] = _get_processors(host_data['processors'])
-    device_info['mac_addresses'] = (
-        _get_macs(host_data['mac_addresses'], ilo_version)
+    device_info['ethernets'] = (
+        _get_ethernets(host_data['mac_addresses'], ilo_version)
     )
     device_info['serial_number'] = (
         host_data['sys_info'][0].get('Serial Number', "").strip()
@@ -224,7 +233,7 @@ def scan(host, user, password):
         raise IloError("No IP address to scan has been provided.")
     if user == "":
         raise IloError("No management username has been provided.")
-    if host == "":
+    if password == "":
         raise IloError("No management password has been provided.")
     ilo_manager = get_ilo_instance(host, user, password)
     ilo_version = get_ilo_version(ilo_manager)

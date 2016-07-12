@@ -25,8 +25,8 @@ type Config struct {
 	ManagementUserPassword string
 }
 
-// DefaultCfg provides defaults for Config. Fields with zero-values for their respective
-// fields are ommited.
+// DefaultCfg provides defaults for Config. Fields with zero-values for their
+// respective fields are omitted.
 var DefaultCfg = Config{
 	ClientTimeout:          10, // seconds
 	RalphAPIURL:            "change_me",
@@ -43,10 +43,10 @@ var bundledFiles = []string{
 	"ilo.toml",
 }
 
-// GetCfgDirLocation generates the path to the config dir. It gets the path to current
-// user's home dir and if baseDir is an empty string, it appends ".ralph-cli" to it,
-// otherwise appends ".ralph-cli" to baseDir path (the former case is meant mostly for
-// facilitation of testing).
+// GetCfgDirLocation generates the path to the config dir. It gets the path to
+// current user's home dir and if baseDir is an empty string, it appends
+// ".ralph-cli" to it, otherwise appends ".ralph-cli" to baseDir path (the
+// former case is meant mostly for facilitation of testing).
 func GetCfgDirLocation(baseDir string) (string, error) {
 	switch {
 	case baseDir == "":
@@ -64,8 +64,8 @@ func GetCfgDirLocation(baseDir string) (string, error) {
 }
 
 // PrepareCfgDir creates config dir given as cfgDir (for most cases it will ber
-// ~/.ralph-cli). It also creates default config file, and copies bundled scripts
-// to the scripts subdir.
+// ~/.ralph-cli). It also creates default config file, and copies bundled
+// scripts to the scripts subdir.
 func PrepareCfgDir(cfgDir, cfgFileName string) error {
 	var err error
 	if err = createCfgDir(cfgDir); err != nil {
@@ -176,8 +176,9 @@ func (c *Config) validate() error {
 		msg := fmt.Sprint("Ralph API URL is missing")
 		errMsgs = append(errMsgs, &msg)
 	}
-	// TODO(xor-xor): Investigate why url.Parse happily accepts stuff like "httplocalhost" or
-	// "http/localhost/api", and add some additional checks here for such cases.
+	// TODO(xor-xor): Investigate why url.Parse happily accepts stuff like
+	// "httplocalhost" or "http/localhost/api", and add some additional checks
+	// here for such cases.
 	// TODO(xor-xor): Get rid of Query/Fragment if present in URL.
 	u, err := url.Parse(c.RalphAPIURL)
 	if err != nil {
@@ -193,16 +194,17 @@ func (c *Config) validate() error {
 
 // getDefaults supplements missing values for Config fields with their defaults.
 func (c *Config) getDefaults() {
-	// Unfortunately, there's no easy way to iterate over struct fields, hence we need
-	// to enumerate default settings manually here.
+	// Unfortunately, there's no easy way to iterate over struct fields, hence
+	// we need to enumerate default settings manually here.
 	switch {
 	case c.ClientTimeout == 0:
 		c.ClientTimeout = DefaultCfg.ClientTimeout
 	}
 }
 
-// Manifest represents the contents of a .toml file holding additional information,  which may be
-// helpful/required to run user's script (e.g., language, version, requirements etc.).
+// Manifest represents the contents of a .toml file holding additional
+// information, which may be helpful/required to run user's script (e.g.,
+// language, version, requirements etc.).
 type Manifest struct {
 	Path            string `toml:"-"`
 	Language        string
@@ -210,17 +212,18 @@ type Manifest struct {
 	Requirements    []requirement `toml:"requirement"`
 }
 
-// requirement is a helper type for Manifest. It shouldn't be used alone/separately.
+// requirement is a helper type for Manifest. It shouldn't be used
+// alone/separately.
 type requirement struct {
 	Name    string
 	Version string
 }
 
-// GetManifest loads manifest file pointed by path argument. Each manifest file should have the same
-// name as the script file associated with it (e.g., having a script "idrac.py", its manifest file
-// should be named "idrac.toml").
-// At this moment manifest files are not required, although it may change in the future (especially
-// when we add some more information to them).
+// GetManifest loads manifest file pointed by path argument. Each manifest file
+// should have the same name as the script file associated with it (e.g., having
+// a script "idrac.py", its manifest file should be named "idrac.toml").
+// At this moment manifest files are not required, although it may change in the
+// future (especially when we add some more information to them).
 func GetManifest(path string) (*Manifest, error) {
 	var mf Manifest
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -237,8 +240,8 @@ func GetManifest(path string) (*Manifest, error) {
 	return &mf, nil
 }
 
-// validate performs some sanity checks and normalizations on Manifest.
-// All the errors are returned at once (i.e., aggregated), via ValidationError.
+// validate performs some sanity checks and normalizations on Manifest. All the
+// errors are returned at once (i.e., aggregated), via ValidationError.
 func (m *Manifest) validate() error {
 	var errMsgs []*string
 	if m.Language == "" {
@@ -261,18 +264,19 @@ func (m *Manifest) validate() error {
 	return nil
 }
 
-// VenvExists returns true if there's a virtualenv for a given Python script, or false otherwise.
-// We can add more sophisticated heuristics here, but at this moment, checking for bin/activate
-// script should be enough.
+// VenvExists returns true if there's a virtualenv for a given Python script, or
+// false otherwise.  We can add more sophisticated heuristics here, but at this
+// moment, checking for bin/activate script should be enough.
 func VenvExists(s Script) bool {
 	venvPath := MakeVenvPath(s)
 	file := filepath.Join(venvPath, "bin", "activate")
 	return fileExists(file)
 }
 
-// MakeVenvPath generates the absolute path to virtualenv associated with the given script by
-// replacing from its path the last dot-separated component with "_env" suffix (e.g., for
-// "/home/user/.ralph-cli/scripts/idrac.py" we will get "/home/user/.ralph-cli/scripts/idrac_env").
+// MakeVenvPath generates the absolute path to virtualenv associated with the
+// given script by replacing from its path the last dot-separated component with
+// "_env" suffix (e.g., for "/home/user/.ralph-cli/scripts/idrac.py" we will get
+// "/home/user/.ralph-cli/scripts/idrac_env").
 func MakeVenvPath(s Script) string {
 	scriptsDir := filepath.Dir(s.Path)
 	baseName := strings.TrimSuffix(filepath.Base(s.Path), ".py")
@@ -280,8 +284,8 @@ func MakeVenvPath(s Script) string {
 	return filepath.Join(scriptsDir, venvName)
 }
 
-// CreatePythonVenv creates a virtualenv for Python scripts in ~/.ralph-cli/scripts and returns
-// its path.
+// CreatePythonVenv creates a virtualenv for Python scripts in
+// ~/.ralph-cli/scripts and returns its path.
 func CreatePythonVenv(s Script) (venvPath string, err error) {
 	var python string
 	venvPath = MakeVenvPath(s)
@@ -300,8 +304,9 @@ func CreatePythonVenv(s Script) (venvPath string, err error) {
 	return venvPath, nil
 }
 
-// InstallPythonReqs takes a list of Requirements from Manifest associated with a given Script,
-// and installs them with "pip install" into a virtualenv pointed by venvPath.
+// InstallPythonReqs takes a list of Requirements from Manifest associated with
+// a given Script, and installs them with "pip install" into a virtualenv
+// pointed by venvPath.
 func InstallPythonReqs(venvPath string, s Script) error {
 	numReqs := len(s.Manifest.Requirements)
 	if numReqs > 0 {

@@ -256,7 +256,7 @@ i.e. subject to change).
     "fibre_channel_cards": [
         {
             "firmware": "",
-            "model": "",
+            "model_name": "",
             "speed": "",
             "wwn": "",
             "pwwn": "" // ...and any other "wwn" that can be found (we need them all)
@@ -264,8 +264,8 @@ i.e. subject to change).
     ],
     "ethernets": [
         {
-            "mac_address": "AA:AA:AA:AA:AA:AA",
-            "model": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
+            "mac": "AA:AA:AA:AA:AA:AA",
+            "model_name": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
             "speed": "", // add if possible
             "firmware_version": "", // add if possible
         }

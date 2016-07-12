@@ -18,24 +18,40 @@
             "cores": 8
         }
     ],
-    "mac_addresses": [
-		"AA:AA:AA:AA:AA:AA",
-		"AA:BB:CC:DD:EE:FF",
-		"A1:B2:C3:D4:E5:F6",
-		"74:86:7A:EE:20:E8"
+    "ethernets": [
+        {
+            "mac": "AA:AA:AA:AA:AA:AA",
+            "model_name": "Intel(R) Gigabit 4P X520/I350 rNDC",
+            "speed": "1 Gbps",
+            "firmware_version": "1.1.1"
+        },
+        {
+            "mac": "AA:BB:CC:DD:EE:FF",
+            "model_name": "Intel(R) Gigabit 4P X520/I350 rNDC",
+            "speed": "1 Gbps",
+            "firmware_version": "1.1.1"
+        },
+        {
+            "mac": "A1:B2:C3:D4:E5:F6",
+            "model_name": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
+            "speed": "10 Gbps",
+            "firmware_version": "1.1.1"
+        },
+        {
+            "mac": "74:86:7A:EE:20:E8",
+            "model_name": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
+            "speed": "10 Gbps",
+            "firmware_version": "1.1.1"
+        }
     ],
     "disks": [
         {
             "model_name": "ATA Samsung SSD 840",
-            "family": "ATA",
-            "label": "ATA Samsung SSD 840",
             "size": 476,
             "serial_number": "S1AXNSAD8000000"
         },
         {
             "model_name": "ATA Samsung SSD 840",
-            "family": "ATA",
-            "label": "ATA Samsung SSD 840",
             "size": 476,
             "serial_number": "S1AXNSAD8000001"
         }
@@ -43,28 +59,24 @@
     "serial_number": "UUUZZZ1",
     "memory": [
         {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
+            "model_name": "Samsung DDR3 DIMM",
             "size": 16384,
-            "index": 1
+            "speed": 1600
         },
         {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
+            "model_name": "Samsung DDR3 DIMM",
             "size": 16384,
-            "index": 2
+            "speed": 1600
         },
         {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
+            "model_name": "Samsung DDR3 DIMM",
             "size": 16384,
-            "index": 3
+            "speed": 1600
         },
         {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
+            "model_name": "Samsung DDR3 DIMM",
             "size": 16384,
-            "index": 4
+            "speed": 1600
         }
     ]
 }

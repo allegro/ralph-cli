@@ -211,7 +211,7 @@ func TestFibreChannelCardIsEqualTo(t *testing.T) {
 
 func TestProcessorIsEqualTo(t *testing.T) {
 	var cases = map[string]struct {
-		mem  *Processor
+		proc *Processor
 		comp Component
 		want bool
 	}{
@@ -245,14 +245,84 @@ func TestProcessorIsEqualTo(t *testing.T) {
 			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 4},
 			false,
 		},
-		"#6 Component other than Processor given": {
+		"#6 Component given as object, not pointer": {
+			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
+			true,
+		},
+		"#7 Component other than Processor given": {
 			&Processor{1, BaseObject{1}, "Intel(R) Xeon(R)", 2600, 8},
 			FakeComponent{},
 			false,
 		},
 	}
 	for tn, tc := range cases {
-		got := tc.mem.IsEqualTo(tc.comp)
+		got := tc.proc.IsEqualTo(tc.comp)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+}
+
+func TestDiskIsEqualTo(t *testing.T) {
+	var cases = map[string]struct {
+		disk *Disk
+		comp Component
+		want bool
+	}{
+		"#0 All equal": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			true,
+		},
+		"#1 All different": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{2, BaseObject{2}, "ATA Samsung SSD 840", 256, "S4321", 2, "2.2.2"},
+			false,
+		},
+		"#2 Different BaseObject.ID": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{2}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			false,
+		},
+		"#3 Different ModelName": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{1}, "Toshiba SSD", 476, "S1234", 1, "1.1.1"},
+			false,
+		},
+		"#4 Different Size": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 256, "S1234", 1, "1.1.1"},
+			false,
+		},
+		"#5 Different SerialNumber": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S4321", 1, "1.1.1"},
+			false,
+		},
+		"#6 Different Slot": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 2, "1.1.1"},
+			false,
+		},
+		"#7 Different FirmwareVersion": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "2.2.2"},
+			false,
+		},
+		"#8 Component given as object, not pointer": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			true,
+		},
+		"#9 Component other than Disk given": {
+			&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			FakeComponent{},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := tc.disk.IsEqualTo(tc.comp)
 		if got != tc.want {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}
@@ -881,6 +951,138 @@ func TestCompareProcessors(t *testing.T) {
 	}
 }
 
+func TestCompareDisks(t *testing.T) {
+	var cases = map[string]struct {
+		disksOld []*Disk
+		disksNew []*Disk
+		want     *Diff
+	}{
+		"#0 Empty diff": {
+			disksOld: []*Disk{},
+			disksNew: []*Disk{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#1 Create": {
+			disksOld: []*Disk{},
+			disksNew: []*Disk{
+				&Disk{0, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "Disk",
+						Data:      []byte(`{"id":0,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"S1234","slot":1,"firmware_version":"1.1.1"}`),
+						Component: &Disk{0, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+		"#2 Delete (old > new && new > 0)": {
+			disksOld: []*Disk{
+				// Such situation as below (i.e. two disks using the same slot)
+				// is rather not possible in reality (well, unless we have
+				// corrupted data in Ralph), but without it we wouldn't be able
+				// to cover all the cases in CompareDisks.
+				&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "", 1, "1.1.1"},
+				&Disk{2, BaseObject{1}, "ATA Samsung SSD 840", 476, "", 1, "1.1.1"},
+			},
+			disksNew: []*Disk{
+				&Disk{0, BaseObject{1}, "ATA Samsung SSD 840", 476, "", 1, "1.1.1"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Disk",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"","slot":1,"firmware_version":"1.1.1"}`),
+						Component: &Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "", 1, "1.1.1"},
+					},
+				},
+			},
+		},
+		"#3 Delete (old > new && new == 0)": {
+			disksOld: []*Disk{
+				&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			},
+			disksNew: []*Disk{},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Disk",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"S1234","slot":1,"firmware_version":"1.1.1"}`),
+						Component: &Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+					},
+				},
+			},
+		},
+		// Note that we test "Delete and Create" scenario instead of "Update" -
+		// in case of Disk, the latter doesn't make sense because Disk
+		// instances are not unique (in contrast to e.g. Ethernet, whose
+		// instances can be distinguished by their MACAddresses).
+		"#4 Update by \"Delete and Create\"": {
+			disksOld: []*Disk{
+				&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			},
+			disksNew: []*Disk{
+				&Disk{0, BaseObject{1}, "Toshiba SSD", 256, "S4321", 1, "2.2.2"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{
+					&DiffComponent{
+						ID:        0,
+						Name:      "Disk",
+						Data:      []byte(`{"id":0,"base_object":1,"model_name":"Toshiba SSD","size":256,"serial_number":"S4321","slot":1,"firmware_version":"2.2.2"}`),
+						Component: &Disk{0, BaseObject{1}, "Toshiba SSD", 256, "S4321", 1, "2.2.2"},
+					},
+				},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{
+					&DiffComponent{
+						ID:        1,
+						Name:      "Disk",
+						Data:      []byte(`{"id":1,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"S1234","slot":1,"firmware_version":"1.1.1"}`),
+						Component: &Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+					},
+				},
+			},
+		},
+		"#5 Don't do anything (both new and old Disk is the same)": {
+			disksOld: []*Disk{
+				&Disk{1, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			},
+			disksNew: []*Disk{
+				&Disk{0, BaseObject{1}, "ATA Samsung SSD 840", 476, "S1234", 1, "1.1.1"},
+			},
+			want: &Diff{
+				Create: []*DiffComponent{},
+				Update: []*DiffComponent{},
+				Delete: []*DiffComponent{},
+			},
+		},
+	}
+	for tn, tc := range cases {
+		got, err := CompareDisks(tc.disksOld, tc.disksNew)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(*got, *tc.want); !eq {
+			t.Errorf("%s\n%s", tn, err)
+		}
+	}
+}
+
 func TestGetEthernets(t *testing.T) {
 	var cases = []struct {
 		file    string
@@ -1039,6 +1241,47 @@ func TestGetProcessors(t *testing.T) {
 	}
 }
 
+func TestGetDisks(t *testing.T) {
+	var cases = []struct {
+		file    string
+		baseObj BaseObject
+		want    []*Disk
+	}{
+		{
+			"disk_components.json",
+			BaseObject{1},
+			[]*Disk{
+				&Disk{
+					ID:              1,
+					BaseObject:      BaseObject{1},
+					ModelName:       "ATA Samsung SSD 840",
+					Size:            476,
+					SerialNumber:    "S1234",
+					Slot:            -1, // a special value designating null
+					FirmwareVersion: "1.1.1",
+				},
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		fixture, err := LoadFixture(ralphTestFixturesDir, tc.file)
+		if err != nil {
+			t.Fatalf("file: %s\n%s", tc.file, err)
+		}
+		server, client := MockServerClient(200, fixture)
+		defer server.Close()
+
+		got, err := tc.baseObj.GetDisks(client)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("#%d\n%s", tn, err)
+		}
+	}
+}
+
 func TestEthernetToString(t *testing.T) {
 	ethernet := Ethernet{
 		ID:              1,
@@ -1105,6 +1348,45 @@ func TestProcessorToString(t *testing.T) {
 	}
 }
 
+func TestDiskToString(t *testing.T) {
+	var cases = map[string]struct {
+		disk Disk
+		want string
+	}{
+		"#0 Normal slot number": {
+			Disk{
+				ID:              1,
+				BaseObject:      BaseObject{1},
+				ModelName:       "ATA Samsung SSD 840",
+				Size:            476,
+				SerialNumber:    "S1234",
+				Slot:            9,
+				FirmwareVersion: "1.1.1",
+			},
+			`Disk{id: 1, base_object_id: 1, model_name: ATA Samsung SSD 840, size: 476, serial_number: S1234, slot: 9, firmware_version: 1.1.1}`,
+		},
+
+		"#1 Slot number unspecified (-1)": {
+			Disk{
+				ID:              1,
+				BaseObject:      BaseObject{1},
+				ModelName:       "ATA Samsung SSD 840",
+				Size:            476,
+				SerialNumber:    "S1234",
+				Slot:            -1,
+				FirmwareVersion: "1.1.1",
+			},
+			`Disk{id: 1, base_object_id: 1, model_name: ATA Samsung SSD 840, size: 476, serial_number: S1234, slot: , firmware_version: 1.1.1}`,
+		},
+	}
+	for tn, tc := range cases {
+		got := tc.disk.String()
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+}
+
 func TestEthSpeedMarshalJSON(t *testing.T) {
 	var cases = []struct {
 		speed EthSpeed
@@ -1144,6 +1426,25 @@ func TestFCCSpeedMarshalJSON(t *testing.T) {
 	}
 	for _, tc := range cases {
 		got, err := tc.speed.MarshalJSON()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !TestEqByte(got, tc.want) {
+			t.Errorf("\n got: %v\nwant: %v", got, tc.want)
+		}
+	}
+}
+
+func TestDiskSlotNumberMarshalJSON(t *testing.T) {
+	var cases = []struct {
+		slot DiskSlotNumber
+		want []byte
+	}{
+		{9, []byte("9")},
+		{-1, []byte("null")},
+	}
+	for _, tc := range cases {
+		got, err := tc.slot.MarshalJSON()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

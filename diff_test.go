@@ -214,6 +214,15 @@ func TestNewDiffComponent(t *testing.T) {
 		Speed:      2600,
 		Cores:      8,
 	}
+	disk := Disk{
+		ID:              1,
+		BaseObject:      BaseObject{1},
+		ModelName:       "ATA Samsung SSD 840",
+		Size:            476,
+		SerialNumber:    "S1234",
+		Slot:            1,
+		FirmwareVersion: "1.1.1",
+	}
 	var cases = map[string]struct {
 		component Component
 		want      *DiffComponent
@@ -301,6 +310,26 @@ func TestNewDiffComponent(t *testing.T) {
 				Name:      "Processor",
 				Data:      []byte(`{"id":1,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
 				Component: &proc,
+			},
+			errMsg: "",
+		},
+		"#9 Disk": {
+			component: disk,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "Disk",
+				Data:      []byte(`{"id":1,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"S1234","slot":1,"firmware_version":"1.1.1"}`),
+				Component: &disk,
+			},
+			errMsg: "",
+		},
+		"#10 Disk as a pointer": {
+			component: &disk,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "Disk",
+				Data:      []byte(`{"id":1,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"S1234","slot":1,"firmware_version":"1.1.1"}`),
+				Component: &disk,
 			},
 			errMsg: "",
 		},

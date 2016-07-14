@@ -42,12 +42,16 @@
         {
             "model_name": "ATA Samsung SSD 840",
             "size": 476,
-            "serial_number": "S1AXNSAD8000000"
+            "serial_number": "S1234",
+            "slot": 0,
+            "firmware_version": "1.1.1"
         },
         {
             "model_name": "ATA Samsung SSD 840",
             "size": 476,
-            "serial_number": "S1AXNSAD8000001"
+            "serial_number": "S1235",
+            "slot": 1,
+            "firmware_version": "1.1.1"
         }
     ],
     "serial_number": "UUUZZZ1",

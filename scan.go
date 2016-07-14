@@ -85,11 +85,14 @@ func (s Script) Run(addrToScan Addr, cfg *Config) (*ScanResult, error) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return &res, fmt.Errorf("error running script %s: %s\noutput from script:\n-->\n%s<--",
+		return nil, fmt.Errorf("error running script %s: %s\noutput from script:\n-->\n%s<--",
 			s.Path, err, string(output))
 	}
 	err = json.Unmarshal(output, &res)
-	return &res, err
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling script output: %s", err)
+	}
+	return &res, nil
 }
 
 // prepareEnv is a helper function for Script.Run. It modifies the environment that
@@ -118,15 +121,16 @@ func prepareEnv(oldEnv []string, addrToScan Addr, cfg *Config) (newEnv []string)
 type ScanResult struct {
 	// TODO(xor-xor): Consider adding here a field holding an ADDR being scanned.
 	// TODO(xor-xor): Consider using Model type instead of string here.
-	Ethernets  []Ethernet  `json:"ethernets"`
-	Disks      []Disk      `json:"disks"`
-	Memory     []Memory    `json:"memory"`
-	ModelName  string      `json:"model_name"`
-	Processors []Processor `json:"processors"`
-	SN         string      `json:"serial_number"`
+	Ethernets         []Ethernet         `json:"ethernets"`
+	Memory            []Memory           `json:"memory"`
+	FibreChannelCards []FibreChannelCard `json:"fibre_channel_cards"`
+	Disks             []Disk             `json:"disks"`
+	ModelName         string             `json:"model_name"`
+	Processors        []Processor        `json:"processors"`
+	SN                string             `json:"serial_number"`
 }
 
 func (sr ScanResult) String() string {
-	return fmt.Sprintf("Ethernets: %s\nDisks: %s\nMemory: %s\nModelName: %s\nProcessors: %s\nSerial Number: %s\n",
-		sr.Ethernets, sr.Disks, sr.Memory, sr.ModelName, sr.Processors, sr.SN)
+	return fmt.Sprintf("Ethernets: %s\nMemory: %s\nFibreChannelCards: %s\nDisks: %s\nModelName: %s\nProcessors: %s\nSerial Number: %s\n",
+		sr.Ethernets, sr.Memory, sr.FibreChannelCards, sr.Disks, sr.ModelName, sr.Processors, sr.SN)
 }

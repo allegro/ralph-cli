@@ -51,6 +51,9 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if changed := getMemory(result, baseObj, client, dryRun); changed {
 		changesDetected = true
 	}
+	if changed := getFibreChannelCards(result, baseObj, client, dryRun); changed {
+		changesDetected = true
+	}
 	if !changesDetected {
 		fmt.Println("No changes detected.")
 	}
@@ -185,4 +188,30 @@ func checkIfExposedInDHCP(m *MACAddress, c *Client) (IPAddress, error) {
 		}
 	}
 	return IPAddress{}, nil
+}
+
+func getFibreChannelCards(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	oldFCC, err := baseObj.GetFibreChannelCards(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var newFCC []*FibreChannelCard
+	for i := 0; i < len(result.FibreChannelCards); i++ {
+		result.FibreChannelCards[i].BaseObject = *baseObj
+		newFCC = append(newFCC, &result.FibreChannelCards[i])
+	}
+
+	diff, err := CompareFibreChannelCards(oldFCC, newFCC)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if diff.IsEmpty() {
+		return false
+	}
+	_, err = SendDiffToRalph(client, diff, dryRun, false)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return true
 }

@@ -14,23 +14,22 @@ MAC_PREFIX_BLACKLIST = [
 ]
 
 DEVICE_INFO_TEMPLATE = {
+    # fibre_channel_cards and disks are unused (hpilo doesn't provide such info)
     "model_name": "",
-    "processors": [],
     "ethernets": [],
-    "disks": [],          # unused (hpilo doesn't provide such info)
-    "serial_number": "",
     "memory": [],
+    "fibre_channel_cards": [],
+    "processors": [],
+    "disks": [],
+    "serial_number": "",
 }
-
 ETHERNET_TEMPLATE = {
     # model_name, speed and firmware are unused (hpilo doesn't provide such info)
     "mac": "",
     "model_name": "",
     "speed": "unknown speed",
     "firmware_version": "",
-
 }
-
 PROCESSOR_TEMPLATE = {
     "model_name": "",  # unused (hpilo doesn't provide such info)
     "family": "",      # hpilo returns int here, but only for iLO2 (for iLO3 this field is empty)  # noqa
@@ -39,13 +38,11 @@ PROCESSOR_TEMPLATE = {
     "speed": None,
     "cores": None,
 }
-
 MEMORY_TEMPLATE = {
     "model_name": "",  # unused (hpilo doesn't provide such info)
     "size": None,
     "speed": None,
 }
-
 
 class IloError(Exception):
     pass

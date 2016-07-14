@@ -11,10 +11,11 @@ import (
 
 // APIEndpoints maps ralph-cli types to Ralph's API endpoints.
 var APIEndpoints = map[string]string{
-	"BaseObject": "base-objects",
-	"IPAddress":  "ipaddresses",
-	"Ethernet":   "ethernets",
-	"Memory":     "memory",
+	"BaseObject":       "base-objects",
+	"IPAddress":        "ipaddresses",
+	"Ethernet":         "ethernets",
+	"Memory":           "memory",
+	"FibreChannelCard": "fibre-channel-cards",
 }
 
 // Client provides an interface to interact with Ralph via its REST API.

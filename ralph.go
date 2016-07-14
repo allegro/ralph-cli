@@ -131,6 +131,25 @@ func (b BaseObject) GetFibreChannelCards(c *Client) ([]*FibreChannelCard, error)
 	return cardsPtrs, nil
 }
 
+// GetProcessors fetches Processor objects associated with given
+// BaseObject.
+func (b BaseObject) GetProcessors(c *Client) ([]*Processor, error) {
+	q := fmt.Sprintf("base_object=%d", b.ID)
+	rawBody, err := c.GetFromRalph(APIEndpoints["Processor"], q)
+	if err != nil {
+		return nil, err
+	}
+	var procs ProcessorList
+	if err := json.Unmarshal(rawBody, &procs); err != nil {
+		return nil, fmt.Errorf("error while unmarshaling Processor: %v", err)
+	}
+	procsPtrs := make([]*Processor, procs.Count)
+	for i := 0; i < procs.Count; i++ {
+		procsPtrs[i] = &procs.Results[i]
+	}
+	return procsPtrs, nil
+}
+
 // MACAddress represents a physical address of a network card (Ethernet).
 type MACAddress struct {
 	net.HardwareAddr
@@ -676,16 +695,148 @@ func CompareFibreChannelCards(old, new []*FibreChannelCard) (*Diff, error) {
 	}, nil
 }
 
+// ProcessorList represents the shape of data returned by Ralph for Processor
+// endpoint.
+type ProcessorList struct {
+	Count   int
+	Results []Processor
+}
+
 // Processor represents a single processor on a given host.
 type Processor struct {
-	Name  string `json:"label"`
-	Cores int
-	Speed int
+	ID         int        `json:"id"`
+	BaseObject BaseObject `json:"base_object"`
+	ModelName  string     `json:"model_name"`
+	Speed      int        `json:"speed"`
+	Cores      int        `json:"cores"`
 }
 
 func (p Processor) String() string {
-	return fmt.Sprintf("Processor{name: %s, cores: %d, speed: %d}",
-		p.Name, p.Cores, p.Speed)
+	return fmt.Sprintf("Processor{id: %d, base_object_id: %d, model_name: %s, speed: %d, cores: %d}",
+		p.ID, p.BaseObject.ID, p.ModelName, p.Speed, p.Cores)
+}
+
+// IsEqualTo implements Component interface. This method compares two Processor
+// objects for equality. Please note that Processor.ID *is not* taken into
+// account here!
+func (p Processor) IsEqualTo(c Component) bool {
+	switch pp := c.(type) {
+	case *Processor:
+		switch {
+		case p.BaseObject.ID != pp.BaseObject.ID:
+			return false
+		case p.ModelName != pp.ModelName:
+			return false
+		case p.Speed != pp.Speed:
+			return false
+		case p.Cores != pp.Cores:
+			return false
+		default:
+			return true
+		}
+	case Processor:
+		return p.IsEqualTo(&pp)
+	default:
+		return false
+	}
+}
+
+// CompareProcessors compares two sets of Processor objects (old and new) and
+// creates a Diff holding detected changes.
+func CompareProcessors(old, new []*Processor) (*Diff, error) {
+	// Since Processor instances are not unique (i.e., w/o considering Processor.ID),
+	// we won't be using Diff.Update here.
+	var create, delete []*DiffComponent
+
+	// Keys for these maps are constructed from all Processor field values *except* ID.
+	counterOld := make(map[string]int)
+	counterNew := make(map[string]int)
+	oldAsMap := make(map[string][]*Processor)
+	newAsMap := make(map[string][]*Processor)
+
+	// Populate oldAsMap/newAsMap.
+	for _, p := range old {
+		k := fmt.Sprintf("%d__%s__%d__%d",
+			p.BaseObject.ID, strings.Replace(p.ModelName, " ", "_", -1), p.Speed, p.Cores)
+		counterOld[k]++
+		oldAsMap[k] = append(oldAsMap[k], p)
+	}
+	for _, p := range new {
+		k := fmt.Sprintf("%d__%s__%d__%d",
+			p.BaseObject.ID, strings.Replace(p.ModelName, " ", "_", -1), p.Speed, p.Cores)
+		counterNew[k]++
+		newAsMap[k] = append(newAsMap[k], p)
+	}
+
+	if len(new) == 0 {
+		for _, p := range old {
+			d, err := NewDiffComponent(p)
+			if err != nil {
+				return nil, err
+			}
+			delete = append(delete, d)
+		}
+		return &Diff{
+			Create: []*DiffComponent{},
+			Delete: delete,
+			Update: []*DiffComponent{},
+		}, nil
+	}
+
+	// Find the differences between counterNew and counterOld and populate
+	// Diff.Create and Diff.Delete lists.
+	for k, v := range counterNew {
+		switch {
+		case v == counterOld[k]:
+			continue
+		case v > counterOld[k]:
+			// Create (v - counterOld[k]) instances of k.
+			for i := 0; i < v-counterOld[k]; i++ {
+				d, err := NewDiffComponent(newAsMap[k][0])
+				if err != nil {
+					return nil, err
+				}
+				create = append(create, d)
+			}
+		case v < counterOld[k]:
+			// Delete (counterOld[k] - v ) instances of k.
+			for i := 0; i < counterOld[k]-v; i++ {
+				d, err := NewDiffComponent(oldAsMap[k][i])
+				if err != nil {
+					return nil, err
+				}
+				delete = append(delete, d)
+			}
+		}
+	}
+
+	// We also need to make sure that keys which are only in counterOld will be
+	// deleted.
+	for k, v := range counterOld {
+		presentInNew := false
+		for kk := range counterNew {
+			if k == kk {
+				presentInNew = true
+				break
+			}
+		}
+		if !presentInNew {
+			// Delete v instances of k.
+			for i := 0; i < v; i++ {
+				d, err := NewDiffComponent(oldAsMap[k][i])
+				if err != nil {
+					return nil, err
+				}
+				delete = append(delete, d)
+			}
+		}
+	}
+
+	return &Diff{
+		Create: create,
+		Delete: delete,
+		Update: []*DiffComponent{},
+	}, nil
 }
 
 // Disk represents a single hard drive (be it SSD or "normal" one) on a given host.

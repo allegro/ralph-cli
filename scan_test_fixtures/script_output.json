@@ -2,19 +2,13 @@
     "model_name": "Dell PowerEdge R620",
     "processors": [
         {
-            "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "family": "B3",
-            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "index": 1,
-            "speed": 3600,
+            "model_name": "Intel(R) Xeon(R)",
+            "speed": 2600,
             "cores": 8
         },
         {
-            "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "family": "B3",
-            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "index": 2,
-            "speed": 3600,
+            "model_name": "Intel(R) Xeon(R)",
+            "speed": 2600,
             "cores": 8
         }
     ],

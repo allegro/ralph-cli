@@ -54,6 +54,9 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if changed := getFibreChannelCards(result, baseObj, client, dryRun); changed {
 		changesDetected = true
 	}
+	if changed := getProcessors(result, baseObj, client, dryRun); changed {
+		changesDetected = true
+	}
 	if !changesDetected {
 		fmt.Println("No changes detected.")
 	}
@@ -203,6 +206,32 @@ func getFibreChannelCards(result *ScanResult, baseObj *BaseObject, client *Clien
 	}
 
 	diff, err := CompareFibreChannelCards(oldFCC, newFCC)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if diff.IsEmpty() {
+		return false
+	}
+	_, err = SendDiffToRalph(client, diff, dryRun, false)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return true
+}
+
+func getProcessors(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	oldProcs, err := baseObj.GetProcessors(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var newProcs []*Processor
+	for i := 0; i < len(result.Processors); i++ {
+		result.Processors[i].BaseObject = *baseObj
+		newProcs = append(newProcs, &result.Processors[i])
+	}
+
+	diff, err := CompareProcessors(oldProcs, newProcs)
 	if err != nil {
 		log.Fatalln(err)
 	}

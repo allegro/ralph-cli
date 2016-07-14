@@ -96,8 +96,8 @@ func TestRun(t *testing.T) {
 		},
 		ModelName: "Dell PowerEdge R620",
 		Processors: []Processor{
-			Processor{Name: "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz", Cores: 8, Speed: 3600},
-			Processor{Name: "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz", Cores: 8, Speed: 3600},
+			Processor{ModelName: "Intel(R) Xeon(R)", Cores: 8, Speed: 2600},
+			Processor{ModelName: "Intel(R) Xeon(R)", Cores: 8, Speed: 2600},
 		},
 		SN: "UUUZZZ1",
 	}

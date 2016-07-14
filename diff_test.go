@@ -207,6 +207,13 @@ func TestNewDiffComponent(t *testing.T) {
 		WWN:             "aabbccddeeff0011",
 		FirmwareVersion: "1.1.1",
 	}
+	proc := Processor{
+		ID:         1,
+		BaseObject: BaseObject{1},
+		ModelName:  "Intel(R) Xeon(R)",
+		Speed:      2600,
+		Cores:      8,
+	}
 	var cases = map[string]struct {
 		component Component
 		want      *DiffComponent
@@ -274,6 +281,26 @@ func TestNewDiffComponent(t *testing.T) {
 				Name:      "FibreChannelCard",
 				Data:      []byte(`{"id":1,"base_object":1,"model_name":"Saturn-X: LightPulse Fibre Channel Host Adapter","speed":3,"wwn":"aabbccddeeff0011","firmware_version":"1.1.1"}`),
 				Component: &fcc,
+			},
+			errMsg: "",
+		},
+		"#7 Processor": {
+			component: proc,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "Processor",
+				Data:      []byte(`{"id":1,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
+				Component: &proc,
+			},
+			errMsg: "",
+		},
+		"#8 Processor as a pointer": {
+			component: &proc,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "Processor",
+				Data:      []byte(`{"id":1,"base_object":1,"model_name":"Intel(R) Xeon(R)","speed":2600,"cores":8}`),
+				Component: &proc,
 			},
 			errMsg: "",
 		},

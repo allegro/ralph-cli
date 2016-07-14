@@ -32,9 +32,6 @@ ETHERNET_TEMPLATE = {
 }
 PROCESSOR_TEMPLATE = {
     "model_name": "",  # unused (hpilo doesn't provide such info)
-    "family": "",      # hpilo returns int here, but only for iLO2 (for iLO3 this field is empty)  # noqa
-    "label": "",
-    "index": None,     # unused, but similar info is available as "label"
     "speed": None,
     "cores": None,
 }
@@ -100,8 +97,6 @@ def _get_processors(raw_procs):
     processors = []
     for p in raw_procs:
         proc = deepcopy(PROCESSOR_TEMPLATE)
-        proc['family'] = str(p.get('Family', ""))
-        proc['label'] = p.get('Label', "")
         proc['speed'] = _get_speed(p.get('Speed'))
         proc['cores'] = get_cores(p.get('Execution Technology'))
         processors.append(proc)

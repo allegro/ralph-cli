@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/allegro/ralph-cli.svg?branch=develop)](https://travis-ci.org/allegro/ralph-cli)
 [![Coverage Status](https://coveralls.io/repos/github/allegro/ralph-cli/badge.svg?branch=develop)](https://coveralls.io/github/allegro/ralph-cli?branch=develop)
+[![Go Report Card](https://goreportcard.com/badge/github.com/allegro/ralph-cli)](https://goreportcard.com/report/github.com/allegro/ralph-cli) 
 [![Documentation Status](https://readthedocs.org/projects/ralph-cli/badge/?version=latest)](http://ralph-cli.readthedocs.io/en/latest/?badge=latest)
 
 `ralph-cli` is a command-line interface for [Ralph][ralph]. Its goal is to serve

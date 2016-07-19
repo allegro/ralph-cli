@@ -60,6 +60,9 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if changed := getDisks(result, baseObj, client, dryRun); changed {
 		changesDetected = true
 	}
+	if changed := getBIOSAndFirmwareVersions(result, baseObj, client, dryRun); changed {
+		changesDetected = true
+	}
 	if !changesDetected {
 		fmt.Println("No changes detected.")
 	}
@@ -272,4 +275,37 @@ func getDisks(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bo
 		log.Fatalln(err)
 	}
 	return true
+}
+
+// Hence DataCenterAsset has only two fields on ralph-cli's side and we send it
+// to Ralph only as an update (i.e., with PATCH method), there's no need for a
+// separate, more sophisticated function like CompareDataCenterAssets.
+func getBIOSAndFirmwareVersions(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	dcAsset, err := baseObj.GetDataCenterAsset(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	dcAsset.ID = baseObj.ID
+	var changed bool
+	if result.FirmwareVersion != dcAsset.FirmwareVersion {
+		dcAsset.FirmwareVersion = result.FirmwareVersion
+		changed = true
+	}
+	if result.BIOSVersion != dcAsset.BIOSVersion {
+		dcAsset.BIOSVersion = result.BIOSVersion
+		changed = true
+	}
+	if changed {
+		var diff Diff
+		d, err := NewDiffComponent(dcAsset)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		diff.Update = append(diff.Update, d)
+		_, err = SendDiffToRalph(client, &diff, dryRun, false)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+	return changed
 }

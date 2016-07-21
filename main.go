@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jawher/mow.cli"
 	gommonlog "github.com/labstack/gommon/log"
@@ -39,22 +41,49 @@ func main() {
 
 	app := cli.App("ralph-cli", "Command-line interface for Ralph")
 
-	app.Command("scan", "Perform scan of a given host/network", func(cmd *cli.Cmd) {
+	app.Command("scan", "Perform scan of a given host", func(cmd *cli.Cmd) {
 		addr := cmd.StringArg("IP_ADDR", "", "IP address of a host to scan")
 		script := cmd.StringOpt("script", "", "Script to be executed")
+		componentsRaw := cmd.StringOpt("components", "all", "Components to discover - possible values: all, eth, mem, fcc, cpu, disk")
+		withBIOSAndFirmware := cmd.BoolOpt("with-bios-and-firmware", false, "Try to discover BIOS and firmware versions")
 		withModel := cmd.BoolOpt("with-model", false, "Append detected model name to \"Remarks\" field in Ralph")
-		dryRun := cmd.BoolOpt("dry-run", false, "Don't write anything")
+		dryRun := cmd.BoolOpt("dry-run", false, "Don't save anything in Ralph")
 
-		cmd.Spec = "IP_ADDR --script=<script_name> [--with-model] [--dry-run]"
+		cmd.Spec = "IP_ADDR --script=<script name> [--components=<comma-separated list of components>] [--with-bios-and-firmware] [--with-model] [--dry-run]"
 
 		cmd.Action = func() {
 			if *script == "" {
 				log.Fatalln("No script supplied to '--script' switch. Aborting.")
 			}
-			PerformScan(*addr, *script, *withModel, *dryRun, cfg, cfgDir)
+			components, err := parseComponents(*componentsRaw)
+			if err != nil {
+				log.Fatalf("Error parsing value for '--component' switch: %s. Aborting.", err)
+			}
+			PerformScan(*addr, *script, *components, *withBIOSAndFirmware, *withModel, *dryRun, cfg, cfgDir)
 		}
 	})
 
 	app.Version("v version", "0.1.0")
 	app.Run(os.Args)
+}
+
+// parseComponents returns a map denoting presence or absence of a given
+// component in --components=<...> switch. Aborts the program when an unknown
+// component is found.
+func parseComponents(componentsRaw string) (*map[string]bool, error) {
+	var components = map[string]bool{
+		"all":  false,
+		"eth":  false,
+		"mem":  false,
+		"fcc":  false,
+		"cpu":  false,
+		"disk": false,
+	}
+	for _, c := range strings.Split(componentsRaw, ",") {
+		if _, ok := components[c]; !ok {
+			return nil, fmt.Errorf("unknown component: %s", c)
+		}
+		components[c] = true
+	}
+	return &components, nil
 }

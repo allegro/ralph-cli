@@ -331,43 +331,78 @@ func TestDiskIsEqualTo(t *testing.T) {
 
 func TestDataCenterAssetIsEqualTo(t *testing.T) {
 	var cases = map[string]struct {
-		disk *DataCenterAsset
-		comp Component
-		want bool
+		dcAsset *DataCenterAsset
+		comp    Component
+		want    bool
 	}{
 		"#0 All equal": {
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
 			true,
 		},
 		"#1 All different": {
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
-			&DataCenterAsset{2, "2.2.2", "1.1.1"},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{2, PtrTo("2.2.2"), PtrTo("1.1.1"), PtrTo("some remark")},
 			false,
 		},
-		"#2 Different FirmwareVersion": {
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
-			&DataCenterAsset{1, "3.3.3", "2.2.2"},
+		"#2 Different FirmwareVersion 1": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("3.3.3"), PtrTo("2.2.2"), PtrTo("some remark")},
 			false,
 		},
-		"#3 Different BIOSVersion": {
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
-			&DataCenterAsset{1, "1.1.1", "3.3.3"},
+		"#3 Different FirmwareVersion 2": {
+			&DataCenterAsset{1, nil, PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.q"), PtrTo("2.2.2"), PtrTo("some remark")},
 			false,
 		},
-		"#4 Component given as object, not pointer": {
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
-			DataCenterAsset{1, "1.1.1", "2.2.2"},
+		"#4 Different FirmwareVersion 3": {
+			&DataCenterAsset{1, PtrTo("1.1.q"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, nil, PtrTo("2.2.2"), PtrTo("some remark")},
+			false,
+		},
+		"#5 Different BIOSVersion 1": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("3.3.3"), PtrTo("some remark")},
+			false,
+		},
+		"#6 Different BIOSVersion 2": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), nil, PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			false,
+		},
+		"#7 Different BIOSVersion 3": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.1"), nil, PtrTo("some remark")},
+			false,
+		},
+		"#8 Different Remarks 1": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some other remark")},
+			false,
+		},
+		"#9 Different Remarks 2": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), nil},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			false,
+		},
+		"#10 Different Remarks 3": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), nil},
+			false,
+		},
+		"#11 Component given as object, not pointer": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("Some remark")},
+			DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("Some remark")},
 			true,
 		},
-		"#5 Component other than DataCenterAsset given": {
-			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+		"#12 Component other than DataCenterAsset given": {
+			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("Some remark")},
 			FakeComponent{},
 			false,
 		},
 	}
 	for tn, tc := range cases {
-		got := tc.disk.IsEqualTo(tc.comp)
+		got := tc.dcAsset.IsEqualTo(tc.comp)
 		if got != tc.want {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}
@@ -1337,8 +1372,8 @@ func TestGetDataCenterAsset(t *testing.T) {
 			"data_center_asset.json",
 			BaseObject{1},
 			&DataCenterAsset{
-				FirmwareVersion: "1.1.1",
-				BIOSVersion:     "2.2.2",
+				FirmwareVersion: PtrTo("1.1.1"),
+				BIOSVersion:     PtrTo("2.2.2"),
 			},
 		},
 	}
@@ -1467,16 +1502,34 @@ func TestDiskToString(t *testing.T) {
 }
 
 func TestDataCenterAssetToString(t *testing.T) {
-	dcAsset := DataCenterAsset{
-		ID:              1,
-		FirmwareVersion: "1.1.1",
-		BIOSVersion:     "2.2.2",
+	var cases = map[string]struct {
+		dcAsset DataCenterAsset
+		want    string
+	}{
+		"#0 All pointer fields are different than nil": {
+			DataCenterAsset{
+				ID:              1,
+				FirmwareVersion: PtrTo("1.1.1"),
+				BIOSVersion:     PtrTo("2.2.2"),
+				Remarks:         PtrTo("some remark"),
+			},
+			`DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2, remarks: some remark}`,
+		},
+		"#1 Pointer fields equal to nil are omitted": {
+			DataCenterAsset{
+				ID:              1,
+				FirmwareVersion: PtrTo("1.1.1"),
+				BIOSVersion:     PtrTo("2.2.2"),
+				Remarks:         nil,
+			},
+			`DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2}`,
+		},
 	}
-	want := `DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2}`
-
-	got := dcAsset.String()
-	if got != want {
-		t.Errorf("\n got: %v\nwant: %v", got, want)
+	for tn, tc := range cases {
+		got := tc.dcAsset.String()
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
 	}
 }
 

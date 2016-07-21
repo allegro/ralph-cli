@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 // PerformScan runs a scan of a given host using a script with scriptName.
 // At this moment, we assume that only MAC addresses will be created/updated/deleted in Ralph.
-func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir string) {
+func PerformScan(addrStr, scriptName string, withModel, dryRun bool, cfg *Config, cfgDir string) {
 	if dryRun {
 		// TODO(xor-xor): Wire up logger here.
 		fmt.Println("INFO: Running in dry-run mode, no changes will be saved in Ralph.")
@@ -62,6 +64,11 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	}
 	if changed := getBIOSAndFirmwareVersions(result, baseObj, client, dryRun); changed {
 		changesDetected = true
+	}
+	if withModel {
+		if changed := getModelName(result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
 	if !changesDetected {
 		fmt.Println("No changes detected.")
@@ -285,16 +292,77 @@ func getBIOSAndFirmwareVersions(result *ScanResult, baseObj *BaseObject, client 
 	if err != nil {
 		log.Fatalln(err)
 	}
+	// Setting nil to any DataCenterAsset field (except ID) effectively excludes
+	// it from JSON sent to Ralph.
+	dcAsset.Remarks = nil
 	dcAsset.ID = baseObj.ID
 	var changed bool
-	if result.FirmwareVersion != dcAsset.FirmwareVersion {
-		dcAsset.FirmwareVersion = result.FirmwareVersion
+	if result.FirmwareVersion != *dcAsset.FirmwareVersion {
+		*dcAsset.FirmwareVersion = result.FirmwareVersion
+		changed = true
+	} else {
+		dcAsset.FirmwareVersion = nil
+	}
+	if result.BIOSVersion != *dcAsset.BIOSVersion {
+		*dcAsset.BIOSVersion = result.BIOSVersion
+		changed = true
+	} else {
+		dcAsset.BIOSVersion = nil
+	}
+	if changed {
+		var diff Diff
+		d, err := NewDiffComponent(dcAsset)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		diff.Update = append(diff.Update, d)
+		_, err = SendDiffToRalph(client, &diff, dryRun, false)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+	return changed
+}
+
+func getModelName(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	if result.ModelName == "" {
+		return false
+	}
+
+	dcAsset, err := baseObj.GetDataCenterAsset(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	dcAsset.ID = baseObj.ID
+	// exclude these fields from JSON sent to Ralph
+	dcAsset.FirmwareVersion = nil
+	dcAsset.BIOSVersion = nil
+
+	const remarkTemplate = ">>> ralph-cli: detected model name: %s <<<"
+	r, err := regexp.Compile(">>> ralph-cli: detected model name:.*<<<")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	newRemark := fmt.Sprintf(remarkTemplate, result.ModelName)
+	var changed bool
+	switch oldRemark := r.FindString(*dcAsset.Remarks); {
+	case oldRemark == newRemark:
+		return false
+	case oldRemark != "": // replace existing remark
+		*dcAsset.Remarks = r.ReplaceAllString(*dcAsset.Remarks, newRemark)
+		changed = true
+	default: // no existing remark, append one
+		var separator string
+		if len(*dcAsset.Remarks) > 0 {
+			separator = "\n"
+		}
+		*dcAsset.Remarks = strings.Join([]string{
+			*dcAsset.Remarks,
+			fmt.Sprintf(remarkTemplate, result.ModelName),
+		}, separator)
 		changed = true
 	}
-	if result.BIOSVersion != dcAsset.BIOSVersion {
-		dcAsset.BIOSVersion = result.BIOSVersion
-		changed = true
-	}
+
 	if changed {
 		var diff Diff
 		d, err := NewDiffComponent(dcAsset)

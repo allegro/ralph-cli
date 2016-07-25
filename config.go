@@ -15,10 +15,9 @@ import (
 
 // Config holds the configuration for ralph-cli.
 type Config struct {
-	Path                   string `json:"-"`
-	Debug                  bool
-	LogOutput              string // e.g. logstash
-	ClientTimeout          int
+	Path                   string `toml:"-"`
+	LogOutput              string `toml:"-"`
+	ClientTimeout          int    `toml:"-"`
 	RalphAPIURL            string
 	RalphAPIKey            string
 	ManagementUserName     string

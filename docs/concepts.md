@@ -246,7 +246,7 @@ i.e. subject to change).
     "processors": [
         {
             "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "speed": 3600,
+            "speed": 2600, // in Mhz
             "cores": 8
         }
     ],
@@ -254,7 +254,7 @@ i.e. subject to change).
         {
             "firmware": "",
             "model_name": "",
-            "speed": "",
+            "speed": "", // in Gbit
             "wwn": "" // ...and any other "wwn" that can be found (we need them all)
         }
     ],
@@ -262,26 +262,24 @@ i.e. subject to change).
         {
             "mac": "AA:AA:AA:AA:AA:AA",
             "model_name": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
-            "speed": "",
+            "speed": "", // in Mbps/Gbps (e.g. "10 Mbps", "10 Gbps")
             "firmware_version": "",
         }
     ],
     "disks": [
         {
             "model_name": "ATA Samsung SSD 840",
-            "family": "ATA", // to be removed
-            "label": "ATA Samsung SSD 840", // to be removed
-            "size": 476,
+            "size": 476, // in GiB
             "serial_number": "S1AXNSAD8000000",
-            "slot": "", // add if possible
-            "firmware_version": "" // add if possible
+            "slot": "",
+            "firmware_version": ""
         },
     ],
     "memory": [
         {
             "model_name": "Samsung DDR3 DIMM",
-            "speed": 1600,
-            "size": 16384
+            "speed": 1600, // in MHz
+            "size": 16384 // in MiB
         },
     ],
     "software": [

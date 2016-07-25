@@ -86,6 +86,15 @@ func NewDiffComponent(component Component) (*DiffComponent, error) {
 		}
 	case Processor:
 		return NewDiffComponent(&v)
+	case *Disk:
+		id = v.ID
+		name = "Disk"
+		data, err = json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+	case Disk:
+		return NewDiffComponent(&v)
 	default:
 		return nil, fmt.Errorf("unknown component: %+v", v)
 	}

@@ -17,6 +17,7 @@ var APIEndpoints = map[string]string{
 	"Memory":           "memory",
 	"FibreChannelCard": "fibre-channel-cards",
 	"Processor":        "processors",
+	"Disk":             "disks",
 }
 
 // Client provides an interface to interact with Ralph via its REST API.

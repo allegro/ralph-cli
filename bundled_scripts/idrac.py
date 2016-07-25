@@ -80,6 +80,13 @@ FIBRE_CHANNEL_CARD_TEMPLATE = {
     "speed": "unknown speed",
     "wwn": "",
 }
+DISK_TEMPLATE = {
+    "model_name": "",
+    "size": None,
+    "serial_number": "",
+    "slot": None,
+    "firmware_version": "",  # unused (iDRAC doesn't provide this info yet).
+}
 
 
 def normalize_mac_address(mac_address):
@@ -337,6 +344,12 @@ def _get_memory(idrac_manager):
 
 
 def _get_disks(idrac_manager):
+
+    def normalize_disk_size(size_in_bytes):
+        size = int(size_in_bytes and size_in_bytes.strip() or 0)
+        size = int(size / 1024 / 1024 / 1024)
+        return size
+
     tree = idrac_manager.run_command('DCIM_PhysicalDiskView')
     xmlns_n1 = XMLNS_N1_BASE % "DCIM_PhysicalDiskView"
     q = "{}Body/{}EnumerateResponse/{}Items/{}DCIM_PhysicalDiskView".format(
@@ -345,7 +358,7 @@ def _get_disks(idrac_manager):
         XMLNS_WSMAN,
         xmlns_n1,
     )
-    results = []
+    disks = []
     for record in tree.findall(q):
         manufacturer = record.find(
             "{}{}".format(xmlns_n1, 'Manufacturer'),
@@ -362,18 +375,16 @@ def _get_disks(idrac_manager):
         serial_number = record.find(
             '{}{}'.format(xmlns_n1, 'SerialNumber'),
         ).text
-        results.append({
-            'size': int(
-                int(
-                    size_in_bytes and size_in_bytes.strip() or 0
-                ) / 1024 / 1024 / 1024
-            ),
-            'serial_number': serial_number and serial_number.strip() or '',
-            'label': model_name,
-            'model_name': model_name,
-            'family': manufacturer,
-        })
-    return results
+        slot = record.find(
+            '{}{}'.format(xmlns_n1, 'Slot'),
+        ).text
+        disk = deepcopy(DISK_TEMPLATE)
+        disk['model_name'] = model_name
+        disk['size'] = normalize_disk_size(size_in_bytes)
+        disk['serial_number'] = serial_number and serial_number.strip() or ''
+        disk['slot'] = int(slot) if slot else None
+        disks.append(disk)
+    return disks
 
 
 def _get_fibre_channel_cards(idrac_manager):

@@ -84,10 +84,6 @@ func TestRun(t *testing.T) {
 			Ethernet{MACAddress: macs["a1:b2:c3:d4:e5:f6"], ModelName: "Intel(R) Ethernet 10G 4P X520/I350 rNDC", Speed: "10 Gbps", FirmwareVersion: "1.1.1"},
 			Ethernet{MACAddress: macs["74:86:7a:ee:20:e8"], ModelName: "Intel(R) Ethernet 10G 4P X520/I350 rNDC", Speed: "10 Gbps", FirmwareVersion: "1.1.1"},
 		},
-		Disks: []Disk{
-			Disk{ModelName: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1AXNSAD8000000"},
-			Disk{ModelName: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1AXNSAD8000001"},
-		},
 		Memory: []Memory{
 			Memory{ModelName: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
 			Memory{ModelName: "Samsung DDR3 DIMM", Size: 16384, Speed: 1600},
@@ -98,6 +94,10 @@ func TestRun(t *testing.T) {
 		Processors: []Processor{
 			Processor{ModelName: "Intel(R) Xeon(R)", Cores: 8, Speed: 2600},
 			Processor{ModelName: "Intel(R) Xeon(R)", Cores: 8, Speed: 2600},
+		},
+		Disks: []Disk{
+			Disk{ModelName: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1234", Slot: 0, FirmwareVersion: "1.1.1"},
+			Disk{ModelName: "ATA Samsung SSD 840", Size: 476, SerialNumber: "S1235", Slot: 1, FirmwareVersion: "1.1.1"},
 		},
 		SN: "UUUZZZ1",
 	}

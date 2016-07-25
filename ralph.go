@@ -150,6 +150,24 @@ func (b BaseObject) GetProcessors(c *Client) ([]*Processor, error) {
 	return procsPtrs, nil
 }
 
+// GetDisks fetches Disk objects associated with given BaseObject.
+func (b BaseObject) GetDisks(c *Client) ([]*Disk, error) {
+	q := fmt.Sprintf("base_object=%d", b.ID)
+	rawBody, err := c.GetFromRalph(APIEndpoints["Disk"], q)
+	if err != nil {
+		return nil, err
+	}
+	var disks DiskList
+	if err := json.Unmarshal(rawBody, &disks); err != nil {
+		return nil, fmt.Errorf("error while unmarshaling Disk: %v", err)
+	}
+	disksPtrs := make([]*Disk, disks.Count)
+	for i := 0; i < disks.Count; i++ {
+		disksPtrs[i] = &disks.Results[i]
+	}
+	return disksPtrs, nil
+}
+
 // MACAddress represents a physical address of a network card (Ethernet).
 type MACAddress struct {
 	net.HardwareAddr
@@ -262,6 +280,39 @@ func (s FCCSpeed) MarshalJSON() ([]byte, error) {
 		return []byte{}, fmt.Errorf("error marshaling FCCSpeed: %v", err)
 	}
 	return data, nil
+}
+
+// DiskSlotNumber is a helper type for Disk.Slot field. Apart from "normal" slot
+// numbers (e.g. 0, 1, 2...) it may have a special value -1, which should be
+// interpreted as nil.  The only purpose of this type is to circuvement possible
+// collisions between 0 as a "normal" slot number vs. 0 as a zero value in Go
+// (see https://willnorris.com/2014/05/go-rest-apis-and-pointers for some more
+// detailed background).
+type DiskSlotNumber int
+
+// MarshalJSON serializes DiskSlotNumber to []byte.
+func (d DiskSlotNumber) MarshalJSON() ([]byte, error) {
+	switch {
+	case d == -1:
+		return []byte("null"), nil
+	default:
+		return json.Marshal(int(d))
+	}
+}
+
+// UnmarshalJSON deserializes DiskSlotNumber from []byte.
+func (d *DiskSlotNumber) UnmarshalJSON(data []byte) error {
+	switch {
+	case string(data) == "null":
+		*d = -1
+	default:
+		var slot int
+		if err := json.Unmarshal(data, &slot); err != nil {
+			return fmt.Errorf("error unmarshaling DiskSlotNumber: %s", err)
+		}
+		*d = (DiskSlotNumber)(slot)
+	}
+	return nil
 }
 
 // Component is an interface type for Ethernet, Memory etc.
@@ -839,16 +890,157 @@ func CompareProcessors(old, new []*Processor) (*Diff, error) {
 	}, nil
 }
 
-// Disk represents a single hard drive (be it SSD or "normal" one) on a given host.
+// DiskList represents the shape of data returned by Ralph for Disk endpoint.
+type DiskList struct {
+	Count   int
+	Results []Disk
+}
+
+// Disk represents a single disk drive (be it HDD or SSD) on a given host.
 type Disk struct {
-	ModelName    string `json:"model_name"`
-	Size         int    `json:"size"`
-	SerialNumber string `json:"serial_number"`
+	ID              int            `json:"id"`
+	BaseObject      BaseObject     `json:"base_object"`
+	ModelName       string         `json:"model_name"`
+	Size            int            `json:"size"`
+	SerialNumber    string         `json:"serial_number"`
+	Slot            DiskSlotNumber `json:"slot"`
+	FirmwareVersion string         `json:"firmware_version"`
 }
 
 func (d Disk) String() string {
-	return fmt.Sprintf("Disk{model_name: %s, size: %d, sn: %s}",
-		d.ModelName, d.Size, d.SerialNumber)
+	var slot string
+	if d.Slot != -1 {
+		slot = fmt.Sprintf("%d", d.Slot)
+	}
+	return fmt.Sprintf("Disk{id: %d, base_object_id: %d, model_name: %s, size: %d, serial_number: %s, slot: %s, firmware_version: %s}",
+		d.ID, d.BaseObject.ID, d.ModelName, d.Size, d.SerialNumber, slot, d.FirmwareVersion)
+}
+
+// IsEqualTo implements Component interface. This method compares two Disk
+// objects for equality. Please note that Disk.ID *is not* taken into account
+// here!
+func (d Disk) IsEqualTo(c Component) bool {
+	switch dd := c.(type) {
+	case *Disk:
+		switch {
+		case d.BaseObject.ID != dd.BaseObject.ID:
+			return false
+		case d.ModelName != dd.ModelName:
+			return false
+		case d.Size != dd.Size:
+			return false
+		case d.SerialNumber != dd.SerialNumber:
+			return false
+		case d.Slot != dd.Slot:
+			return false
+		case d.FirmwareVersion != dd.FirmwareVersion:
+			return false
+		default:
+			return true
+		}
+	case Disk:
+		return d.IsEqualTo(&dd)
+	default:
+		return false
+	}
+}
+
+// CompareDisks compares two sets of Disk objects (old and new) and creates a
+// Diff holding detected changes.
+func CompareDisks(old, new []*Disk) (*Diff, error) {
+	// Since Disk instances are not unique (i.e., w/o considering Disk.ID),
+	// we won't be using Diff.Update here.
+	var create, delete []*DiffComponent
+
+	// Keys for these maps are constructed from all Disk field values *except* ID.
+	counterOld := make(map[string]int)
+	counterNew := make(map[string]int)
+	oldAsMap := make(map[string][]*Disk)
+	newAsMap := make(map[string][]*Disk)
+
+	// Populate oldAsMap/newAsMap.
+	for _, d := range old {
+		k := fmt.Sprintf("%d__%s__%d__%s__%d__%s",
+			d.BaseObject.ID, strings.Replace(d.ModelName, " ", "_", -1), d.Size, d.SerialNumber, d.Slot, d.FirmwareVersion)
+		counterOld[k]++
+		oldAsMap[k] = append(oldAsMap[k], d)
+	}
+	for _, d := range new {
+		k := fmt.Sprintf("%d__%s__%d__%s__%d__%s",
+			d.BaseObject.ID, strings.Replace(d.ModelName, " ", "_", -1), d.Size, d.SerialNumber, d.Slot, d.FirmwareVersion)
+		counterNew[k]++
+		newAsMap[k] = append(newAsMap[k], d)
+	}
+
+	if len(new) == 0 {
+		for _, d := range old {
+			dc, err := NewDiffComponent(d)
+			if err != nil {
+				return nil, err
+			}
+			delete = append(delete, dc)
+		}
+		return &Diff{
+			Create: []*DiffComponent{},
+			Delete: delete,
+			Update: []*DiffComponent{},
+		}, nil
+	}
+
+	// Find the differences between counterNew and counterOld and populate
+	// Diff.Create and Diff.Delete lists.
+	for k, v := range counterNew {
+		switch {
+		case v == counterOld[k]:
+			continue
+		case v > counterOld[k]:
+			// Create (v - counterOld[k]) instances of k.
+			for i := 0; i < v-counterOld[k]; i++ {
+				dc, err := NewDiffComponent(newAsMap[k][0])
+				if err != nil {
+					return nil, err
+				}
+				create = append(create, dc)
+			}
+		case v < counterOld[k]:
+			// Delete (counterOld[k] - v ) instances of k.
+			for i := 0; i < counterOld[k]-v; i++ {
+				dc, err := NewDiffComponent(oldAsMap[k][i])
+				if err != nil {
+					return nil, err
+				}
+				delete = append(delete, dc)
+			}
+		}
+	}
+
+	// We also need to make sure that keys which are only in counterOld will be
+	// deleted.
+	for k, v := range counterOld {
+		presentInNew := false
+		for kk := range counterNew {
+			if k == kk {
+				presentInNew = true
+				break
+			}
+		}
+		if !presentInNew {
+			// Delete v instances of k.
+			for i := 0; i < v; i++ {
+				dc, err := NewDiffComponent(oldAsMap[k][i])
+				if err != nil {
+					return nil, err
+				}
+				delete = append(delete, dc)
+			}
+		}
+	}
+
+	return &Diff{
+		Create: create,
+		Delete: delete,
+		Update: []*DiffComponent{},
+	}, nil
 }
 
 // Software represents either firmware or operating system detected on a given

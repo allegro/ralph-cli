@@ -57,6 +57,9 @@ func PerformScan(addrStr, scriptName string, dryRun bool, cfg *Config, cfgDir st
 	if changed := getProcessors(result, baseObj, client, dryRun); changed {
 		changesDetected = true
 	}
+	if changed := getDisks(result, baseObj, client, dryRun); changed {
+		changesDetected = true
+	}
 	if !changesDetected {
 		fmt.Println("No changes detected.")
 	}
@@ -232,6 +235,32 @@ func getProcessors(result *ScanResult, baseObj *BaseObject, client *Client, dryR
 	}
 
 	diff, err := CompareProcessors(oldProcs, newProcs)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if diff.IsEmpty() {
+		return false
+	}
+	_, err = SendDiffToRalph(client, diff, dryRun, false)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return true
+}
+
+func getDisks(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+	oldDisks, err := baseObj.GetDisks(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var newDisks []*Disk
+	for i := 0; i < len(result.Disks); i++ {
+		result.Disks[i].BaseObject = *baseObj
+		newDisks = append(newDisks, &result.Disks[i])
+	}
+
+	diff, err := CompareDisks(oldDisks, newDisks)
 	if err != nil {
 		log.Fatalln(err)
 	}

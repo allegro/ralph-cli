@@ -42,15 +42,16 @@ func main() {
 	app.Command("scan", "Perform scan of a given host/network", func(cmd *cli.Cmd) {
 		addr := cmd.StringArg("IP_ADDR", "", "IP address of a host to scan")
 		script := cmd.StringOpt("script", "", "Script to be executed")
+		withModel := cmd.BoolOpt("with-model", false, "Append detected model name to \"Remarks\" field in Ralph")
 		dryRun := cmd.BoolOpt("dry-run", false, "Don't write anything")
 
-		cmd.Spec = "IP_ADDR --script=<script_name> [--dry-run]"
+		cmd.Spec = "IP_ADDR --script=<script_name> [--with-model] [--dry-run]"
 
 		cmd.Action = func() {
 			if *script == "" {
 				log.Fatalln("No script supplied to '--script' switch. Aborting.")
 			}
-			PerformScan(*addr, *script, *dryRun, cfg, cfgDir)
+			PerformScan(*addr, *script, *withModel, *dryRun, cfg, cfgDir)
 		}
 	})
 

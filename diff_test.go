@@ -225,8 +225,8 @@ func TestNewDiffComponent(t *testing.T) {
 	}
 	dcAsset := DataCenterAsset{
 		ID:              1,
-		FirmwareVersion: "1.1.1",
-		BIOSVersion:     "2.2.2",
+		FirmwareVersion: PtrTo("1.1.1"),
+		BIOSVersion:     PtrTo("2.2.2"),
 	}
 	var cases = map[string]struct {
 		component Component

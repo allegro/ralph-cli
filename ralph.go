@@ -301,9 +301,9 @@ func (s FCCSpeed) MarshalJSON() ([]byte, error) {
 // DiskSlotNumber is a helper type for Disk.Slot field. Apart from "normal" slot
 // numbers (e.g. 0, 1, 2...) it may have a special value -1, which should be
 // interpreted as nil.  The only purpose of this type is to circuvement possible
-// collisions between 0 as a "normal" slot number vs. 0 as a zero value in Go
-// (see https://willnorris.com/2014/05/go-rest-apis-and-pointers for some more
-// detailed background).
+// collisions between 0 as a "normal" slot number vs. 0 as a zero value in Go.
+// See also DataCenterAsset datatype for alternative approach (struct fields as
+// pointers facilitating PATCH-ing a resource).
 type DiskSlotNumber int
 
 // MarshalJSON serializes DiskSlotNumber to []byte.
@@ -1060,30 +1060,64 @@ func CompareDisks(old, new []*Disk) (*Diff, error) {
 }
 
 // DataCenterAsset is meant only for updating firmware_version and bios_version
-// fields on Ralph's DataCenterAsset model. It should be sent to Ralph only with
-// PATCH method.
+// fields on Ralph's DataCenterAsset model, and for putting ScanResult.Model
+// into Remarks. This datatype should be sent to Ralph only with PATCH method.
+// It is also an experiment with the approach presented in this article:
+// https://willnorris.com/2014/05/go-rest-apis-and-pointers (struct fields as
+// pointers facilitating PATCH-ing a resource).
 type DataCenterAsset struct {
-	ID              int    `json:"-"`
-	FirmwareVersion string `json:"firmware_version"`
-	BIOSVersion     string `json:"bios_version"`
+	ID              int     `json:"-"`
+	FirmwareVersion *string `json:"firmware_version,omitempty"`
+	BIOSVersion     *string `json:"bios_version,omitempty"`
+	Remarks         *string `json:"remarks,omitempty"`
 }
 
+// String for DataCenterAsset will present only the fields that are not nil,
+// except for the ID field, which is not a pointer and always will be presented.
 func (a DataCenterAsset) String() string {
-	return fmt.Sprintf("DataCenterAsset{id: %d, firmware_version: %s, bios_version: %s}",
-		a.ID, a.FirmwareVersion, a.BIOSVersion)
+	str := fmt.Sprintf("id: %d", a.ID)
+	if a.FirmwareVersion != nil {
+		str += fmt.Sprintf(", firmware_version: %s", *a.FirmwareVersion)
+	}
+	if a.BIOSVersion != nil {
+		str += fmt.Sprintf(", bios_version: %s", *a.BIOSVersion)
+	}
+	if a.Remarks != nil {
+		remarks := strings.Replace(*a.Remarks, "\r\n", " ", -1)
+		remarks = strings.Replace(remarks, "\n", " ", -1)
+		str += fmt.Sprintf(", remarks: %s", remarks)
+	}
+	return fmt.Sprintf("DataCenterAsset{%s}", str)
 }
 
 // IsEqualTo implements Component interface. This method compares two
 // DataCenterAsset objects for equality. Please note that DataCenterAsset.ID *is
-// not* taken into account here!
+// not* taken into account here, and that this method's body slightly differs
+// from other components because most of DataCenterAsset fields are pointers.
 func (a DataCenterAsset) IsEqualTo(c Component) bool {
 	switch aa := c.(type) {
 	case *DataCenterAsset:
 		switch {
-		case a.FirmwareVersion != aa.FirmwareVersion:
+		case a.FirmwareVersion == nil && aa.FirmwareVersion != nil ||
+			a.FirmwareVersion != nil && aa.FirmwareVersion == nil:
 			return false
-		case a.BIOSVersion != aa.BIOSVersion:
+		case a.BIOSVersion == nil && aa.BIOSVersion != nil ||
+			a.BIOSVersion != nil && aa.BIOSVersion == nil:
 			return false
+		case a.Remarks == nil && aa.Remarks != nil ||
+			a.Remarks != nil && aa.Remarks == nil:
+			return false
+
+		case a.FirmwareVersion != nil && aa.FirmwareVersion != nil &&
+			*a.FirmwareVersion != *aa.FirmwareVersion:
+			return false
+		case a.BIOSVersion != nil && aa.BIOSVersion != nil &&
+			*a.BIOSVersion != *aa.BIOSVersion:
+			return false
+		case a.Remarks != nil && aa.Remarks != nil &&
+			*a.Remarks != *aa.Remarks:
+			return false
+
 		default:
 			return true
 		}
@@ -1092,15 +1126,6 @@ func (a DataCenterAsset) IsEqualTo(c Component) bool {
 	default:
 		return false
 	}
-}
-
-// Model represents a model name of a given physical host (e.g., Dell PowerEdge R620).
-type Model struct {
-	Name string `json:"model_name"`
-}
-
-func (m Model) String() string {
-	return fmt.Sprintf("Model{name: %s}", m.Name)
 }
 
 // IPAddress is a helper type, i.e. its instances are not meant to be sent to Ralph.

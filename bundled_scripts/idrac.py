@@ -56,6 +56,8 @@ DEVICE_INFO_TEMPLATE = {
     "processors": [],
     "disks": [],
     "serial_number": "",
+    "firmware_version": "",
+    "bios_version": "",
 }
 ETHERNET_TEMPLATE = {
     "mac": "",
@@ -87,7 +89,6 @@ DISK_TEMPLATE = {
     "slot": None,
     "firmware_version": "",  # unused (iDRAC doesn't provide this info yet).
 }
-
 
 def normalize_mac_address(mac_address):
     mac_address = mac_address.upper().replace('-', ':')
@@ -185,6 +186,12 @@ def _get_base_info(idrac_manager):
     ).text.strip()
     if serial_number not in SERIAL_BLACKLIST:
         device_info['serial_number'] = serial_number
+    device_info['firmware_version'] = records[0].find(
+            "{}{}".format(xmlns_n1, 'LifecycleControllerVersion'),
+    ).text
+    device_info['bios_version'] = records[0].find(
+            "{}{}".format(xmlns_n1, 'BIOSVersionString'),
+    ).text
     device_info['model_name'] = model_name
     return device_info
 

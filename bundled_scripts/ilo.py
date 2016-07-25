@@ -14,7 +14,8 @@ MAC_PREFIX_BLACKLIST = [
 ]
 
 DEVICE_INFO_TEMPLATE = {
-    # fibre_channel_cards and disks are unused (hpilo doesn't provide such info)
+    # fibre_channel_cards, disks, firmware_version and bios_version are unused
+    # (hpilo doesn't provide such info)
     "model_name": "",
     "ethernets": [],
     "memory": [],
@@ -22,9 +23,12 @@ DEVICE_INFO_TEMPLATE = {
     "processors": [],
     "disks": [],
     "serial_number": "",
+    "firmware_version": "",
+    "bios_version": "",
 }
 ETHERNET_TEMPLATE = {
-    # model_name, speed and firmware are unused (hpilo doesn't provide such info)
+    # model_name, speed and firmware are unused (hpilo doesn't provide such
+    # info)
     "mac": "",
     "model_name": "",
     "speed": "unknown speed",

@@ -95,6 +95,15 @@ func NewDiffComponent(component Component) (*DiffComponent, error) {
 		}
 	case Disk:
 		return NewDiffComponent(&v)
+	case *DataCenterAsset:
+		id = v.ID
+		name = "DataCenterAsset"
+		data, err = json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+	case DataCenterAsset:
+		return NewDiffComponent(&v)
 	default:
 		return nil, fmt.Errorf("unknown component: %+v", v)
 	}
@@ -151,7 +160,7 @@ func SendDiffToRalph(client *Client, diff *Diff, dryRun bool, noOutput bool) (st
 	}
 	for _, d := range diff.Update {
 		endpoint := fmt.Sprintf("%s/%d", APIEndpoints[d.Name], d.ID)
-		code, err := send(d, "PUT", endpoint, "updated")
+		code, err := send(d, "PATCH", endpoint, "updated")
 		if err != nil {
 			return statusCodes, err
 		}

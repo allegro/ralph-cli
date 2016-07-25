@@ -243,6 +243,8 @@ i.e. subject to change).
 ```no-highlight
 {
     "model_name": "Dell PowerEdge R620",
+    "firmware_version": "1.1.1",
+    "bios_version": "2.2.2",
     "processors": [
         {
             "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
@@ -281,13 +283,6 @@ i.e. subject to change).
             "speed": 1600, // in MHz
             "size": 16384 // in MiB
         },
-    ],
-    "software": [
-        {
-            "type": "firmware", // possible types: "firmware" and "os"
-            "name": "iLO2",
-            "version": "1.77"
-        }
     ]
 }
 ```

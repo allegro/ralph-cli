@@ -329,6 +329,51 @@ func TestDiskIsEqualTo(t *testing.T) {
 	}
 }
 
+func TestDataCenterAssetIsEqualTo(t *testing.T) {
+	var cases = map[string]struct {
+		disk *DataCenterAsset
+		comp Component
+		want bool
+	}{
+		"#0 All equal": {
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			true,
+		},
+		"#1 All different": {
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			&DataCenterAsset{2, "2.2.2", "1.1.1"},
+			false,
+		},
+		"#2 Different FirmwareVersion": {
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			&DataCenterAsset{1, "3.3.3", "2.2.2"},
+			false,
+		},
+		"#3 Different BIOSVersion": {
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			&DataCenterAsset{1, "1.1.1", "3.3.3"},
+			false,
+		},
+		"#4 Component given as object, not pointer": {
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			DataCenterAsset{1, "1.1.1", "2.2.2"},
+			true,
+		},
+		"#5 Component other than DataCenterAsset given": {
+			&DataCenterAsset{1, "1.1.1", "2.2.2"},
+			FakeComponent{},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := tc.disk.IsEqualTo(tc.comp)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+}
+
 func TestMACIsInEths(t *testing.T) {
 	var cases = map[string]struct {
 		eths []*Ethernet
@@ -1282,6 +1327,40 @@ func TestGetDisks(t *testing.T) {
 	}
 }
 
+func TestGetDataCenterAsset(t *testing.T) {
+	var cases = []struct {
+		file    string
+		baseObj BaseObject
+		want    *DataCenterAsset // single pointer instead of array of pointers!
+	}{
+		{
+			"data_center_asset.json",
+			BaseObject{1},
+			&DataCenterAsset{
+				FirmwareVersion: "1.1.1",
+				BIOSVersion:     "2.2.2",
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		fixture, err := LoadFixture(ralphTestFixturesDir, tc.file)
+		if err != nil {
+			t.Fatalf("file: %s\n%s", tc.file, err)
+		}
+		server, client := MockServerClient(200, fixture)
+		defer server.Close()
+
+		got, err := tc.baseObj.GetDataCenterAsset(client)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if eq, err := checkers.DeepEqual(got, tc.want); !eq {
+			t.Errorf("#%d\n%s", tn, err)
+		}
+	}
+}
+
 func TestEthernetToString(t *testing.T) {
 	ethernet := Ethernet{
 		ID:              1,
@@ -1384,6 +1463,20 @@ func TestDiskToString(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
 		}
+	}
+}
+
+func TestDataCenterAssetToString(t *testing.T) {
+	dcAsset := DataCenterAsset{
+		ID:              1,
+		FirmwareVersion: "1.1.1",
+		BIOSVersion:     "2.2.2",
+	}
+	want := `DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2}`
+
+	got := dcAsset.String()
+	if got != want {
+		t.Errorf("\n got: %v\nwant: %v", got, want)
 	}
 }
 

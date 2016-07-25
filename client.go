@@ -18,6 +18,7 @@ var APIEndpoints = map[string]string{
 	"FibreChannelCard": "fibre-channel-cards",
 	"Processor":        "processors",
 	"Disk":             "disks",
+	"DataCenterAsset":  "data-center-assets",
 }
 
 // Client provides an interface to interact with Ralph via its REST API.
@@ -92,7 +93,13 @@ func (c *Client) SendToRalph(method, endpoint string, data []byte) (statusCode i
 
 // GetFromRalph sends a GET request on a given endpoint with specified query.
 func (c *Client) GetFromRalph(endpoint string, query string) ([]byte, error) {
-	url := fmt.Sprintf("%s/%s/?%s", c.ralphURL, endpoint, query)
+	var url string
+	switch {
+	case query == "":
+		url = fmt.Sprintf("%s/%s/", c.ralphURL, endpoint)
+	default:
+		url = fmt.Sprintf("%s/%s/?%s", c.ralphURL, endpoint, query)
+	}
 	req, err := c.NewRequest("GET", url, nil)
 	if err != nil {
 		return []byte{}, err

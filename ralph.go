@@ -168,6 +168,22 @@ func (b BaseObject) GetDisks(c *Client) ([]*Disk, error) {
 	return disksPtrs, nil
 }
 
+// GetDataCenterAsset fetches DataCenterAsset object associated with given
+// BaseObject. Please note, that there will be only one such object, hence we do
+// not return an array here.
+func (b BaseObject) GetDataCenterAsset(c *Client) (*DataCenterAsset, error) {
+	endpoint := fmt.Sprintf("%s/%d", APIEndpoints["DataCenterAsset"], b.ID)
+	rawBody, err := c.GetFromRalph(endpoint, "")
+	if err != nil {
+		return nil, err
+	}
+	var dcAsset DataCenterAsset
+	if err := json.Unmarshal(rawBody, &dcAsset); err != nil {
+		return nil, fmt.Errorf("error while unmarshaling DataCenterAsset: %v", err)
+	}
+	return &dcAsset, nil
+}
+
 // MACAddress represents a physical address of a network card (Ethernet).
 type MACAddress struct {
 	net.HardwareAddr
@@ -1043,12 +1059,39 @@ func CompareDisks(old, new []*Disk) (*Diff, error) {
 	}, nil
 }
 
-// Software represents either firmware or operating system detected on a given
-// host.
-type Software struct {
-	Type    string // possible values: "firmware" and "os"
-	Name    string // e.g. "Debian Linux"
-	Version string
+// DataCenterAsset is meant only for updating firmware_version and bios_version
+// fields on Ralph's DataCenterAsset model. It should be sent to Ralph only with
+// PATCH method.
+type DataCenterAsset struct {
+	ID              int    `json:"-"`
+	FirmwareVersion string `json:"firmware_version"`
+	BIOSVersion     string `json:"bios_version"`
+}
+
+func (a DataCenterAsset) String() string {
+	return fmt.Sprintf("DataCenterAsset{id: %d, firmware_version: %s, bios_version: %s}",
+		a.ID, a.FirmwareVersion, a.BIOSVersion)
+}
+
+// IsEqualTo implements Component interface. This method compares two
+// DataCenterAsset objects for equality. Please note that DataCenterAsset.ID *is
+// not* taken into account here!
+func (a DataCenterAsset) IsEqualTo(c Component) bool {
+	switch aa := c.(type) {
+	case *DataCenterAsset:
+		switch {
+		case a.FirmwareVersion != aa.FirmwareVersion:
+			return false
+		case a.BIOSVersion != aa.BIOSVersion:
+			return false
+		default:
+			return true
+		}
+	case DataCenterAsset:
+		return a.IsEqualTo(&aa)
+	default:
+		return false
+	}
 }
 
 // Model represents a model name of a given physical host (e.g., Dell PowerEdge R620).

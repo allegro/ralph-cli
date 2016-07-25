@@ -128,9 +128,11 @@ type ScanResult struct {
 	ModelName         string             `json:"model_name"`
 	Processors        []Processor        `json:"processors"`
 	SN                string             `json:"serial_number"`
+	FirmwareVersion   string             `json:"firmware_version"`
+	BIOSVersion       string             `json:"bios_version"`
 }
 
 func (sr ScanResult) String() string {
-	return fmt.Sprintf("Ethernets: %s\nMemory: %s\nFibreChannelCards: %s\nDisks: %s\nModelName: %s\nProcessors: %s\nSerial Number: %s\n",
-		sr.Ethernets, sr.Memory, sr.FibreChannelCards, sr.Disks, sr.ModelName, sr.Processors, sr.SN)
+	return fmt.Sprintf("Ethernets: %s\n\nMemory: %s\n\nFibreChannelCards: %s\n\nDisks: %s\n\nModelName: %s\n\nProcessors: %s\n\nFirmware Version: %s\n\nBIOS Version: %s\n\nSerial Number: %s\n",
+		sr.Ethernets, sr.Memory, sr.FibreChannelCards, sr.Disks, sr.ModelName, sr.Processors, sr.FirmwareVersion, sr.BIOSVersion, sr.SN)
 }

@@ -223,6 +223,11 @@ func TestNewDiffComponent(t *testing.T) {
 		Slot:            1,
 		FirmwareVersion: "1.1.1",
 	}
+	dcAsset := DataCenterAsset{
+		ID:              1,
+		FirmwareVersion: "1.1.1",
+		BIOSVersion:     "2.2.2",
+	}
 	var cases = map[string]struct {
 		component Component
 		want      *DiffComponent
@@ -330,6 +335,27 @@ func TestNewDiffComponent(t *testing.T) {
 				Name:      "Disk",
 				Data:      []byte(`{"id":1,"base_object":1,"model_name":"ATA Samsung SSD 840","size":476,"serial_number":"S1234","slot":1,"firmware_version":"1.1.1"}`),
 				Component: &disk,
+			},
+			errMsg: "",
+		},
+
+		"#11 DataCenterAsset": {
+			component: dcAsset,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "DataCenterAsset",
+				Data:      []byte(`{"firmware_version":"1.1.1","bios_version":"2.2.2"}`),
+				Component: &dcAsset,
+			},
+			errMsg: "",
+		},
+		"#12 DataCenterAsset as a pointer": {
+			component: &dcAsset,
+			want: &DiffComponent{
+				ID:        1,
+				Name:      "DataCenterAsset",
+				Data:      []byte(`{"firmware_version":"1.1.1","bios_version":"2.2.2"}`),
+				Component: &dcAsset,
 			},
 			errMsg: "",
 		},

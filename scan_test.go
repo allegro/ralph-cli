@@ -166,4 +166,4 @@ func TestNewScript(t *testing.T) {
 	}
 }
 
-// TODO(xor-xor): Add test cases for missing and non-executable script.
+// TODO(xor-xor): Add test cases for missing script.

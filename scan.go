@@ -20,23 +20,13 @@ type Script struct {
 
 var execCommand = exec.Command
 
-// NewScript creates a new instance of Script given as sName and performs some basic
-// validation of a file associated with it (e.g., is it executable). It also loads
+// NewScript creates a new instance of Script given as sName. It also loads
 // manifest file for this script, if present.
 // Scripts should be located in "scripts" subdir of cfgDir. When cfgDir is given as an
 // empty string, then "~/.ralph-cli/scripts" will be searched (this is the default; the
 // former case is meant mostly for tests).
 func NewScript(sName, cfgDir string) (Script, error) {
 	sPath := filepath.Join(cfgDir, "scripts", sName)
-	finfo, err := os.Stat(sPath)
-	if err != nil {
-		return Script{}, err
-	}
-	exec := finfo.Mode() & 0100
-	if exec == 0 {
-		return Script{}, fmt.Errorf("file %s is not executable for the owner", sPath)
-	}
-
 	mfName := changeExt(sName, "toml")
 	mfPath := filepath.Join(cfgDir, "scripts", mfName)
 	mf, err := GetManifest(mfPath)

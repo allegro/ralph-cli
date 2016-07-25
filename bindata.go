@@ -86,7 +86,7 @@ func idracPy() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "idrac.py", size: 14251, mode: os.FileMode(493), modTime: time.Unix(1468924797, 0)}
+	info := bindataFileInfo{name: "idrac.py", size: 14251, mode: os.FileMode(420), modTime: time.Unix(1469445036, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -126,7 +126,7 @@ func iloPy() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "ilo.py", size: 7839, mode: os.FileMode(493), modTime: time.Unix(1468924808, 0)}
+	info := bindataFileInfo{name: "ilo.py", size: 7839, mode: os.FileMode(420), modTime: time.Unix(1469445036, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

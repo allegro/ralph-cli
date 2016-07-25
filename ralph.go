@@ -32,7 +32,7 @@ func (a Addr) GetBaseObject(c *Client) (*BaseObject, error) {
 
 	var baseObjs BaseObjectList
 	if err := json.Unmarshal(rawBody, &baseObjs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling base object: %v", err)
+		return nil, fmt.Errorf("error unmarshaling base object: %v", err)
 	}
 
 	switch {
@@ -81,7 +81,7 @@ func (b BaseObject) GetEthernets(c *Client) ([]*Ethernet, error) {
 	}
 	var eths EthernetList
 	if err := json.Unmarshal(rawBody, &eths); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Ethernet: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Ethernet: %v", err)
 	}
 	ethsPtrs := make([]*Ethernet, eths.Count)
 	for i := 0; i < eths.Count; i++ {
@@ -103,7 +103,7 @@ func (b BaseObject) GetMemory(c *Client) ([]*Memory, error) {
 	}
 	var mems MemoryList
 	if err := json.Unmarshal(rawBody, &mems); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Memory: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Memory: %v", err)
 	}
 	memsPtrs := make([]*Memory, mems.Count)
 	for i := 0; i < mems.Count; i++ {
@@ -122,7 +122,7 @@ func (b BaseObject) GetFibreChannelCards(c *Client) ([]*FibreChannelCard, error)
 	}
 	var cards FibreChannelCardList
 	if err := json.Unmarshal(rawBody, &cards); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling FibreChannelCard: %v", err)
+		return nil, fmt.Errorf("error unmarshaling FibreChannelCard: %v", err)
 	}
 	cardsPtrs := make([]*FibreChannelCard, cards.Count)
 	for i := 0; i < cards.Count; i++ {
@@ -141,7 +141,7 @@ func (b BaseObject) GetProcessors(c *Client) ([]*Processor, error) {
 	}
 	var procs ProcessorList
 	if err := json.Unmarshal(rawBody, &procs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Processor: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Processor: %v", err)
 	}
 	procsPtrs := make([]*Processor, procs.Count)
 	for i := 0; i < procs.Count; i++ {
@@ -159,7 +159,7 @@ func (b BaseObject) GetDisks(c *Client) ([]*Disk, error) {
 	}
 	var disks DiskList
 	if err := json.Unmarshal(rawBody, &disks); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Disk: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Disk: %v", err)
 	}
 	disksPtrs := make([]*Disk, disks.Count)
 	for i := 0; i < disks.Count; i++ {
@@ -179,7 +179,7 @@ func (b BaseObject) GetDataCenterAsset(c *Client) (*DataCenterAsset, error) {
 	}
 	var dcAsset DataCenterAsset
 	if err := json.Unmarshal(rawBody, &dcAsset); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling DataCenterAsset: %v", err)
+		return nil, fmt.Errorf("error unmarshaling DataCenterAsset: %v", err)
 	}
 	return &dcAsset, nil
 }
@@ -1098,13 +1098,13 @@ func (a DataCenterAsset) IsEqualTo(c Component) bool {
 	switch aa := c.(type) {
 	case *DataCenterAsset:
 		switch {
-		case a.FirmwareVersion == nil && aa.FirmwareVersion != nil ||
+		case a.FirmwareVersion == nil && aa.FirmwareVersion != nil,
 			a.FirmwareVersion != nil && aa.FirmwareVersion == nil:
 			return false
-		case a.BIOSVersion == nil && aa.BIOSVersion != nil ||
+		case a.BIOSVersion == nil && aa.BIOSVersion != nil,
 			a.BIOSVersion != nil && aa.BIOSVersion == nil:
 			return false
-		case a.Remarks == nil && aa.Remarks != nil ||
+		case a.Remarks == nil && aa.Remarks != nil,
 			a.Remarks != nil && aa.Remarks == nil:
 			return false
 
@@ -1150,7 +1150,7 @@ func getIPAddresses(query string, c *Client) (*IPAddressList, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(rawBody, &addrs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling IPAddress: %v", err)
+		return nil, fmt.Errorf("error unmarshaling IPAddress: %v", err)
 	}
 	return &addrs, nil
 }

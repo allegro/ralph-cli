@@ -8,23 +8,15 @@ some common vocabulary - hence the following section, where key concepts behind
 
 `ralph-cli` has its own configuration file `~/.ralph-cli/config.toml`, in
 [TOML][] format. This file is created automatically at the first run of
-`ralph-cli`, and it contains some default settings, as presented below:
+`ralph-cli` (e.g. `ralph-cli --help`), and it contains some default settings, as
+presented below:
 
 ```no-highlight
-Debug = false
-LogOutput = ""
-ClientTimeout = 10
 RalphAPIURL = "change_me"
 RalphAPIKey = "change_me"
 ManagementUserName = "change_me"
 ManagementUserPassword = "change_me"
 ```
-
-The first three of them (`Debug`, `LogOutput` and `ClientTimeout`) are not used
-at this moment, so for now, you can safely ignore their existence (although we
-are going to turn them on quite soon). Quite important are the ones with dummy
-values denoted by `"change_me"` string - these are required for `ralph-cli` to
-operate, and their meaning is as follows:
 
 * `RalphAPIURL` - this should be a string with an URL to your Ralph instance,
   with `/api` path appended, e.g. `"https://my-ralph-instance.local/api"`
@@ -37,6 +29,9 @@ operate, and their meaning is as follows:
   variable (see [Scripts Contract][self-contract])
 * `ManagementUserPassword` - password for the above, exposed as
   `MANAGEMENT_USER_PASSWORD` environment variable
+
+All of them are required, so remember to replace `change_me` strings with the
+real values.
 
 Please note that due to the presence of credentials in `config.toml`, this file
 should remain readable only to its owner (it is `0600` by default, so you don't
@@ -151,94 +146,8 @@ one from which `ralph-cli` is started).
 ### Output
 
 Each script should print discovered data on its `stdout`, in the form of a
-stringified JSON, as in example presented below:
-
-```no-highlight
-{
-    "model_name": "Dell PowerEdge R620",
-    "processors": [
-        {
-            "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "family": "B3",
-            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "index": 1,
-            "speed": 3600,
-            "cores": 8
-        },
-        {
-            "model_name": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "family": "B3",
-            "label": "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
-            "index": 2,
-            "speed": 3600,
-            "cores": 8
-        }
-    ],
-    "mac_addresses": [
-        "AA:AA:AA:AA:AA:AA",
-        "AA:BB:CC:DD:EE:FF",
-        "A1:B2:C3:D4:E5:F6",
-        "74:86:7A:EE:20:E8"
-    ],
-    "disks": [
-        {
-            "model_name": "ATA Samsung SSD 840",
-            "family": "ATA",
-            "label": "ATA Samsung SSD 840",
-            "size": 476,
-            "serial_number": "S1AXNSAD8000000"
-        },
-        {
-            "model_name": "ATA Samsung SSD 840",
-            "family": "ATA",
-            "label": "ATA Samsung SSD 840",
-            "size": 476,
-            "serial_number": "S1AXNSAD8000001"
-        }
-    ],
-    "serial_number": "UUUZZZ1",
-    "memory": [
-        {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
-            "size": 16384,
-            "index": 1
-        },
-        {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
-            "size": 16384,
-            "index": 2
-        },
-        {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
-            "size": 16384,
-            "index": 3
-        },
-        {
-            "label": "Samsung DDR3 DIMM",
-            "speed": 1600,
-            "size": 16384,
-            "index": 4
-        }
-    ]
-}
-```
-
-As you can see, this structure is quite flat (and we will do our best to keep it
-that way), consisting mostly of lists of dicts - a noticeable exception to this
-"rule" is `mac_addresses`, but this is just temporary workaround (see next
-section).
-
-Keep in mind though, that this is just an initial version of contract, which are
-subject to heavy changes until `ralph-cli` will reach `1.0.0` version.
-
-### Output - draft of the next version
-
-As mentioned previously, our Script Contract is going to evolve. Therefore,
-below you will find a sneak-peek of its future shape (in a "draft" form,
-i.e. subject to change).
+stringified JSON, pretty-printed for your convenience in the example presented
+below:
 
 ```no-highlight
 {
@@ -254,18 +163,18 @@ i.e. subject to change).
     ],
     "fibre_channel_cards": [
         {
-            "firmware": "",
-            "model_name": "",
-            "speed": "", // in Gbit
-            "wwn": "" // ...and any other "wwn" that can be found (we need them all)
+            "firmware_version": "1.1.1",
+            "model_name": "Saturn-X: LightPulse Fibre Channel Host Adapter",
+            "speed": "4 Gbit", // 1, 2, 4, 8, 16, 32 and "unknown speed" values are valid
+            "wwn": "aabbccddeeff0011"
         }
     ],
     "ethernets": [
         {
             "mac": "AA:AA:AA:AA:AA:AA",
             "model_name": "Intel(R) Ethernet 10G 4P X520/I350 rNDC",
-            "speed": "", // in Mbps/Gbps (e.g. "10 Mbps", "10 Gbps")
-            "firmware_version": "",
+            "speed": "10 Gbps", // in Mbps/Gbps (e.g. "10 Mbps", "10 Gbps")
+            "firmware_version": "1.1.1",
         }
     ],
     "disks": [
@@ -273,8 +182,8 @@ i.e. subject to change).
             "model_name": "ATA Samsung SSD 840",
             "size": 476, // in GiB
             "serial_number": "S1AXNSAD8000000",
-            "slot": "",
-            "firmware_version": ""
+            "slot": "1",
+            "firmware_version": "1.1.1"
         },
     ],
     "memory": [
@@ -286,6 +195,12 @@ i.e. subject to change).
     ]
 }
 ```
+
+As you can see, this structure is quite flat (and we will do our best to keep it
+that way), consisting mostly of lists of dicts.
+
+Keep in mind though, that this is just an initial version of contract, which are
+subject to heavy changes until `ralph-cli` will reach `1.0.0` version.
 
 If you have any thoughts on this (or if you need to add something here), please
 let us know by opening a new issue on [our GitHub profile][issues].

@@ -11,7 +11,7 @@ import (
 
 // PerformScan runs a scan of a given host using a script with scriptName.
 // At this moment, we assume that only MAC addresses will be created/updated/deleted in Ralph.
-func PerformScan(addrStr, scriptName string, withModel, dryRun bool, cfg *Config, cfgDir string) {
+func PerformScan(addrStr, scriptName string, components map[string]bool, withBIOSAndFirmware, withModel, dryRun bool, cfg *Config, cfgDir string) {
 	if dryRun {
 		// TODO(xor-xor): Wire up logger here.
 		fmt.Println("INFO: Running in dry-run mode, no changes will be saved in Ralph.")
@@ -47,29 +47,42 @@ func PerformScan(addrStr, scriptName string, withModel, dryRun bool, cfg *Config
 	}
 
 	var changesDetected bool
-	if changed := getEthernets(addr, result, baseObj, client, dryRun); changed {
-		changesDetected = true
+	if components["eth"] || components["all"] {
+		if changed := getEthernets(addr, result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
-	if changed := getMemory(result, baseObj, client, dryRun); changed {
-		changesDetected = true
+	if components["mem"] || components["all"] {
+		if changed := getMemory(result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
-	if changed := getFibreChannelCards(result, baseObj, client, dryRun); changed {
-		changesDetected = true
+	if components["fcc"] || components["all"] {
+		if changed := getFibreChannelCards(result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
-	if changed := getProcessors(result, baseObj, client, dryRun); changed {
-		changesDetected = true
+	if components["cpu"] || components["all"] {
+		if changed := getProcessors(result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
-	if changed := getDisks(result, baseObj, client, dryRun); changed {
-		changesDetected = true
+	if components["disk"] || components["all"] {
+		if changed := getDisks(result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
-	if changed := getBIOSAndFirmwareVersions(result, baseObj, client, dryRun); changed {
-		changesDetected = true
+	if withBIOSAndFirmware {
+		if changed := getBIOSAndFirmwareVersions(result, baseObj, client, dryRun); changed {
+			changesDetected = true
+		}
 	}
 	if withModel {
 		if changed := getModelName(result, baseObj, client, dryRun); changed {
 			changesDetected = true
 		}
 	}
+
 	if !changesDetected {
 		fmt.Println("No changes detected.")
 	}

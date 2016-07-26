@@ -165,8 +165,14 @@ func (f FakeComponent) IsEqualTo(c Component) bool {
 	return false
 }
 
-// PtrTo returns a pointer to a string s, which may be useful for constructing
-// struct literals with *string fields.
-func PtrTo(s string) *string {
+// PtrToStr returns a pointer to a string s, which may be useful for
+// constructing struct literals with *string fields.
+func PtrToStr(s string) *string {
 	return &s
+}
+
+// PtrToInt returns a pointer to an int i, which may be useful for constructing
+// struct literals with *int fields.
+func PtrToInt(i int) *int {
+	return &i
 }

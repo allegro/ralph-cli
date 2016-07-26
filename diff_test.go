@@ -224,9 +224,11 @@ func TestNewDiffComponent(t *testing.T) {
 		FirmwareVersion: "1.1.1",
 	}
 	dcAsset := DataCenterAsset{
-		ID:              1,
-		FirmwareVersion: PtrTo("1.1.1"),
-		BIOSVersion:     PtrTo("2.2.2"),
+		ID:              PtrToInt(1),
+		FirmwareVersion: PtrToStr("1.1.1"),
+		BIOSVersion:     PtrToStr("2.2.2"),
+		Remarks:         PtrToStr("some remark"),
+		SerialNumber:    PtrToStr("SN1234"),
 	}
 	var cases = map[string]struct {
 		component Component
@@ -344,7 +346,7 @@ func TestNewDiffComponent(t *testing.T) {
 			want: &DiffComponent{
 				ID:        1,
 				Name:      "DataCenterAsset",
-				Data:      []byte(`{"firmware_version":"1.1.1","bios_version":"2.2.2"}`),
+				Data:      []byte(`{"id":1,"firmware_version":"1.1.1","bios_version":"2.2.2","remarks":"some remark","sn":"SN1234"}`),
 				Component: &dcAsset,
 			},
 			errMsg: "",
@@ -354,7 +356,7 @@ func TestNewDiffComponent(t *testing.T) {
 			want: &DiffComponent{
 				ID:        1,
 				Name:      "DataCenterAsset",
-				Data:      []byte(`{"firmware_version":"1.1.1","bios_version":"2.2.2"}`),
+				Data:      []byte(`{"id":1,"firmware_version":"1.1.1","bios_version":"2.2.2","remarks":"some remark","sn":"SN1234"}`),
 				Component: &dcAsset,
 			},
 			errMsg: "",

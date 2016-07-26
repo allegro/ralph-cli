@@ -10,7 +10,6 @@ import (
 )
 
 // PerformScan runs a scan of a given host using a script with scriptName.
-// At this moment, we assume that only MAC addresses will be created/updated/deleted in Ralph.
 func PerformScan(addrStr, scriptName string, components map[string]bool, withBIOSAndFirmware, withModel, dryRun bool, cfg *Config, cfgDir string) {
 	if dryRun {
 		// TODO(xor-xor): Wire up logger here.
@@ -305,10 +304,9 @@ func getBIOSAndFirmwareVersions(result *ScanResult, baseObj *BaseObject, client 
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// Setting nil to any DataCenterAsset field (except ID) effectively excludes
-	// it from JSON sent to Ralph.
+	// Setting nil to any DataCenterAsset field effectively excludes it from
+	// JSON sent to Ralph.
 	dcAsset.Remarks = nil
-	dcAsset.ID = baseObj.ID
 	var changed bool
 	if result.FirmwareVersion != *dcAsset.FirmwareVersion {
 		*dcAsset.FirmwareVersion = result.FirmwareVersion
@@ -346,7 +344,6 @@ func getModelName(result *ScanResult, baseObj *BaseObject, client *Client, dryRu
 	if err != nil {
 		log.Fatalln(err)
 	}
-	dcAsset.ID = baseObj.ID
 	// exclude these fields from JSON sent to Ralph
 	dcAsset.FirmwareVersion = nil
 	dcAsset.BIOSVersion = nil

@@ -44,8 +44,15 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 	if err != nil {
 		log.Fatalln(err)
 	}
+	dcAsset, err := baseObj.GetDataCenterAsset(client)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	var changesDetected bool
+	if changed := verifySerialNumber(dcAsset, result); changed {
+		changesDetected = true
+	}
 	if components["eth"] || components["all"] {
 		if changed := getEthernets(addr, result, baseObj, client, dryRun); changed {
 			changesDetected = true
@@ -71,17 +78,9 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 			changesDetected = true
 		}
 	}
-	if withBIOSAndFirmware {
-		if changed := getBIOSAndFirmwareVersions(result, baseObj, client, dryRun); changed {
-			changesDetected = true
-		}
+	if changed := getDataCenterAsset(withBIOSAndFirmware, withModel, result, baseObj, dcAsset, client, dryRun); changed {
+		changesDetected = true
 	}
-	if withModel {
-		if changed := getModelName(result, baseObj, client, dryRun); changed {
-			changesDetected = true
-		}
-	}
-
 	if !changesDetected {
 		fmt.Println("No changes detected.")
 	}
@@ -296,31 +295,32 @@ func getDisks(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bo
 	return true
 }
 
-// Hence DataCenterAsset has only two fields on ralph-cli's side and we send it
-// to Ralph only as an update (i.e., with PATCH method), there's no need for a
-// separate, more sophisticated function like CompareDataCenterAssets.
-func getBIOSAndFirmwareVersions(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
-	dcAsset, err := baseObj.GetDataCenterAsset(client)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	// Setting nil to any DataCenterAsset field effectively excludes it from
-	// JSON sent to Ralph.
-	dcAsset.Remarks = nil
+func getDataCenterAsset(withBIOSAndFirmware, withModel bool, result *ScanResult,
+	baseObj *BaseObject, dcAsset *DataCenterAsset, client *Client, dryRun bool) bool {
+
 	var changed bool
-	if result.FirmwareVersion != *dcAsset.FirmwareVersion {
-		*dcAsset.FirmwareVersion = result.FirmwareVersion
-		changed = true
-	} else {
-		dcAsset.FirmwareVersion = nil
+	if withBIOSAndFirmware {
+		changed = getBIOSAndFirmwareVersions(result, dcAsset)
 	}
-	if result.BIOSVersion != *dcAsset.BIOSVersion {
-		*dcAsset.BIOSVersion = result.BIOSVersion
-		changed = true
-	} else {
-		dcAsset.BIOSVersion = nil
+	if withModel {
+		changed = getModelName(result, dcAsset)
 	}
+
 	if changed {
+		// Setting nil to any DataCenterAsset field effectively excludes it from
+		// JSON sent to Ralph.
+		switch {
+		case withBIOSAndFirmware && !withModel:
+			dcAsset.Remarks = nil
+			dcAsset.SerialNumber = nil
+		case !withBIOSAndFirmware && withModel:
+			dcAsset.BIOSVersion = nil
+			dcAsset.FirmwareVersion = nil
+			dcAsset.SerialNumber = nil
+		default: // i.e. withBIOSAndFirmware && withModel
+			dcAsset.SerialNumber = nil
+		}
+
 		var diff Diff
 		d, err := NewDiffComponent(dcAsset)
 		if err != nil {
@@ -335,19 +335,27 @@ func getBIOSAndFirmwareVersions(result *ScanResult, baseObj *BaseObject, client 
 	return changed
 }
 
-func getModelName(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+func getBIOSAndFirmwareVersions(result *ScanResult, dcAsset *DataCenterAsset) bool {
+	var changed bool
+	if result.FirmwareVersion != *dcAsset.FirmwareVersion {
+		*dcAsset.FirmwareVersion = result.FirmwareVersion
+		changed = true
+	} else {
+		dcAsset.FirmwareVersion = nil
+	}
+	if result.BIOSVersion != *dcAsset.BIOSVersion {
+		*dcAsset.BIOSVersion = result.BIOSVersion
+		changed = true
+	} else {
+		dcAsset.BIOSVersion = nil
+	}
+	return changed
+}
+
+func getModelName(result *ScanResult, dcAsset *DataCenterAsset) bool {
 	if result.ModelName == "" {
 		return false
 	}
-
-	dcAsset, err := baseObj.GetDataCenterAsset(client)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	// exclude these fields from JSON sent to Ralph
-	dcAsset.FirmwareVersion = nil
-	dcAsset.BIOSVersion = nil
-
 	const remarkTemplate = ">>> ralph-cli: detected model name: %s <<<"
 	r, err := regexp.Compile(">>> ralph-cli: detected model name:.*<<<")
 	if err != nil {
@@ -372,18 +380,14 @@ func getModelName(result *ScanResult, baseObj *BaseObject, client *Client, dryRu
 		}, separator)
 		changed = true
 	}
-
-	if changed {
-		var diff Diff
-		d, err := NewDiffComponent(dcAsset)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		diff.Update = append(diff.Update, d)
-		_, err = SendDiffToRalph(client, &diff, dryRun, false)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
 	return changed
+}
+
+func verifySerialNumber(dcAsset *DataCenterAsset, result *ScanResult) bool {
+	if dcAsset.SerialNumber != nil && result.SN != *dcAsset.SerialNumber {
+		log.Printf("WARNING: Detected serial number differs from the one stored in Ralph (%q vs. %q).",
+			result.SN, *dcAsset.SerialNumber)
+		return true
+	}
+	return false
 }

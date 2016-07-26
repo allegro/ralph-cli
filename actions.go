@@ -54,31 +54,31 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 		changesDetected = true
 	}
 	if components["eth"] || components["all"] {
-		if changed := getEthernets(addr, result, baseObj, client, dryRun); changed {
+		if changed := updateEthernets(addr, result, baseObj, client, dryRun); changed {
 			changesDetected = true
 		}
 	}
 	if components["mem"] || components["all"] {
-		if changed := getMemory(result, baseObj, client, dryRun); changed {
+		if changed := updateMemory(result, baseObj, client, dryRun); changed {
 			changesDetected = true
 		}
 	}
 	if components["fcc"] || components["all"] {
-		if changed := getFibreChannelCards(result, baseObj, client, dryRun); changed {
+		if changed := updateFibreChannelCards(result, baseObj, client, dryRun); changed {
 			changesDetected = true
 		}
 	}
 	if components["cpu"] || components["all"] {
-		if changed := getProcessors(result, baseObj, client, dryRun); changed {
+		if changed := updateProcessors(result, baseObj, client, dryRun); changed {
 			changesDetected = true
 		}
 	}
 	if components["disk"] || components["all"] {
-		if changed := getDisks(result, baseObj, client, dryRun); changed {
+		if changed := updateDisks(result, baseObj, client, dryRun); changed {
 			changesDetected = true
 		}
 	}
-	if changed := getDataCenterAsset(withBIOSAndFirmware, withModel, result, baseObj, dcAsset, client, dryRun); changed {
+	if changed := updateDataCenterAsset(withBIOSAndFirmware, withModel, result, baseObj, dcAsset, client, dryRun); changed {
 		changesDetected = true
 	}
 	if !changesDetected {
@@ -86,7 +86,7 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 	}
 }
 
-func getEthernets(addr Addr, result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+func updateEthernets(addr Addr, result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
 	oldEths, err := baseObj.GetEthernets(client)
 	// TODO(xor-xor): ExcludeMgmt should be removed when similar functionality
 	// will be implemented in Ralph's API. Therefore, it should be considered as
@@ -124,7 +124,7 @@ func getEthernets(addr Addr, result *ScanResult, baseObj *BaseObject, client *Cl
 	return true
 }
 
-func getMemory(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+func updateMemory(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
 	oldMem, err := baseObj.GetMemory(client)
 	if err != nil {
 		log.Fatalln(err)
@@ -217,7 +217,7 @@ func checkIfExposedInDHCP(m *MACAddress, c *Client) (IPAddress, error) {
 	return IPAddress{}, nil
 }
 
-func getFibreChannelCards(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+func updateFibreChannelCards(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
 	oldFCC, err := baseObj.GetFibreChannelCards(client)
 	if err != nil {
 		log.Fatalln(err)
@@ -243,7 +243,7 @@ func getFibreChannelCards(result *ScanResult, baseObj *BaseObject, client *Clien
 	return true
 }
 
-func getProcessors(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+func updateProcessors(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
 	oldProcs, err := baseObj.GetProcessors(client)
 	if err != nil {
 		log.Fatalln(err)
@@ -269,7 +269,7 @@ func getProcessors(result *ScanResult, baseObj *BaseObject, client *Client, dryR
 	return true
 }
 
-func getDisks(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
+func updateDisks(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {
 	oldDisks, err := baseObj.GetDisks(client)
 	if err != nil {
 		log.Fatalln(err)
@@ -295,15 +295,15 @@ func getDisks(result *ScanResult, baseObj *BaseObject, client *Client, dryRun bo
 	return true
 }
 
-func getDataCenterAsset(withBIOSAndFirmware, withModel bool, result *ScanResult,
+func updateDataCenterAsset(withBIOSAndFirmware, withModel bool, result *ScanResult,
 	baseObj *BaseObject, dcAsset *DataCenterAsset, client *Client, dryRun bool) bool {
 
 	var changed bool
 	if withBIOSAndFirmware {
-		changed = getBIOSAndFirmwareVersions(result, dcAsset)
+		changed = updateBIOSAndFirmwareVersions(result, dcAsset)
 	}
 	if withModel {
-		changed = getModelName(result, dcAsset)
+		changed = updateModelName(result, dcAsset)
 	}
 
 	if changed {
@@ -335,7 +335,7 @@ func getDataCenterAsset(withBIOSAndFirmware, withModel bool, result *ScanResult,
 	return changed
 }
 
-func getBIOSAndFirmwareVersions(result *ScanResult, dcAsset *DataCenterAsset) bool {
+func updateBIOSAndFirmwareVersions(result *ScanResult, dcAsset *DataCenterAsset) bool {
 	var changed bool
 	if result.FirmwareVersion != *dcAsset.FirmwareVersion {
 		*dcAsset.FirmwareVersion = result.FirmwareVersion
@@ -352,7 +352,7 @@ func getBIOSAndFirmwareVersions(result *ScanResult, dcAsset *DataCenterAsset) bo
 	return changed
 }
 
-func getModelName(result *ScanResult, dcAsset *DataCenterAsset) bool {
+func updateModelName(result *ScanResult, dcAsset *DataCenterAsset) bool {
 	if result.ModelName == "" {
 		return false
 	}

@@ -50,7 +50,7 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 	}
 
 	var changesDetected bool
-	if changed := verifySerialNumber(dcAsset, result); changed {
+	if changed := verifySerialNumber(dcAsset, result, false); changed {
 		changesDetected = true
 	}
 	if components["eth"] || components["all"] {
@@ -337,25 +337,32 @@ func updateDataCenterAsset(withBIOSAndFirmware, withModel bool, result *ScanResu
 
 func updateBIOSAndFirmwareVersions(result *ScanResult, dcAsset *DataCenterAsset) bool {
 	var changed bool
-	if result.FirmwareVersion != *dcAsset.FirmwareVersion {
+	switch {
+	case dcAsset.FirmwareVersion == nil && result.FirmwareVersion != "":
+		dcAsset.FirmwareVersion = &result.FirmwareVersion
+		changed = true
+	case dcAsset.FirmwareVersion != nil && result.FirmwareVersion != *dcAsset.FirmwareVersion:
 		*dcAsset.FirmwareVersion = result.FirmwareVersion
 		changed = true
-	} else {
+	case dcAsset.FirmwareVersion != nil && result.FirmwareVersion == *dcAsset.FirmwareVersion:
+		// No changes detected, hence there's no need to send this field back to Ralph.
 		dcAsset.FirmwareVersion = nil
 	}
-	if result.BIOSVersion != *dcAsset.BIOSVersion {
+	switch {
+	case dcAsset.BIOSVersion == nil && result.BIOSVersion != "":
+		dcAsset.BIOSVersion = &result.BIOSVersion
+		changed = true
+	case dcAsset.BIOSVersion != nil && result.BIOSVersion != *dcAsset.BIOSVersion:
 		*dcAsset.BIOSVersion = result.BIOSVersion
 		changed = true
-	} else {
+	case dcAsset.BIOSVersion != nil && result.BIOSVersion == *dcAsset.BIOSVersion:
+		// Same as with FirmwareVersion.
 		dcAsset.BIOSVersion = nil
 	}
 	return changed
 }
 
 func updateModelName(result *ScanResult, dcAsset *DataCenterAsset) bool {
-	if result.ModelName == "" {
-		return false
-	}
 	const remarkTemplate = ">>> ralph-cli: detected model name: %s <<<"
 	r, err := regexp.Compile(">>> ralph-cli: detected model name:.*<<<")
 	if err != nil {
@@ -363,31 +370,50 @@ func updateModelName(result *ScanResult, dcAsset *DataCenterAsset) bool {
 	}
 	newRemark := fmt.Sprintf(remarkTemplate, result.ModelName)
 	var changed bool
-	switch oldRemark := r.FindString(*dcAsset.Remarks); {
+	var existingRemarks string
+	if dcAsset.Remarks != nil {
+		existingRemarks = *dcAsset.Remarks
+	}
+	switch oldRemark := r.FindString(existingRemarks); {
 	case oldRemark == newRemark:
 		return false
-	case oldRemark != "": // replace existing remark
-		*dcAsset.Remarks = r.ReplaceAllString(*dcAsset.Remarks, newRemark)
+	case oldRemark != "" && result.ModelName == "": // delete existing remark
+		remarks := r.ReplaceAllString(existingRemarks, "")
+		dcAsset.Remarks = &remarks
 		changed = true
-	default: // no existing remark, append one
+	case oldRemark != "" && result.ModelName != "": // replace existing remark
+		remarks := r.ReplaceAllString(existingRemarks, newRemark)
+		dcAsset.Remarks = &remarks
+		changed = true
+	case oldRemark == "" && result.ModelName != "": // no existing remark, append one
 		var separator string
-		if len(*dcAsset.Remarks) > 0 {
+		if len(existingRemarks) > 0 {
 			separator = "\n"
 		}
-		*dcAsset.Remarks = strings.Join([]string{
-			*dcAsset.Remarks,
+		remarks := strings.Join([]string{
+			existingRemarks,
 			fmt.Sprintf(remarkTemplate, result.ModelName),
 		}, separator)
+		dcAsset.Remarks = &remarks
 		changed = true
+	default:
+		changed = false
 	}
 	return changed
 }
 
-func verifySerialNumber(dcAsset *DataCenterAsset, result *ScanResult) bool {
-	if dcAsset.SerialNumber != nil && result.SN != *dcAsset.SerialNumber {
-		log.Printf("WARNING: Detected serial number differs from the one stored in Ralph (%q vs. %q).",
-			result.SN, *dcAsset.SerialNumber)
-		return true
+func verifySerialNumber(dcAsset *DataCenterAsset, result *ScanResult, noOutput bool) bool {
+	var existingSN string
+	var changed bool
+	if dcAsset.SerialNumber != nil {
+		existingSN = *dcAsset.SerialNumber
 	}
-	return false
+	if result.SN != existingSN {
+		if !noOutput {
+			log.Printf("WARNING: Detected serial number differs from the one stored in Ralph (%q vs. %q).",
+				result.SN, existingSN)
+		}
+		changed = true
+	}
+	return changed
 }

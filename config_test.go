@@ -21,7 +21,6 @@ func init() {
 		"config.toml":                   0600,
 		"config_api_key_missing.toml":   0600,
 		"config_api_url_missing.toml":   0600,
-		"config_missing_fields.toml":    0600,
 		"config_wrong_permissions.toml": 0666,
 	}
 	for fileName, mode := range perms {
@@ -52,7 +51,6 @@ func TestGetConfig(t *testing.T) {
 			fixtureFile: "config.toml",
 			want: &Config{
 				Path:                   filepath.Join(configTestFixturesDir, "config.toml"),
-				Debug:                  false,
 				LogOutput:              "",
 				ClientTimeout:          10,
 				RalphAPIURL:            "http://localhost:8080/api",
@@ -80,27 +78,12 @@ func TestGetConfig(t *testing.T) {
 		"#4 When config file is missing, DefaultCfg should be used": {
 			fixtureFile: "does_not_exist.toml",
 			want: &Config{
-				Debug:                  false,
 				LogOutput:              "",
 				ClientTimeout:          10,
 				RalphAPIURL:            "change_me",
 				RalphAPIKey:            "change_me",
 				ManagementUserName:     "change_me",
 				ManagementUserPassword: "change_me",
-			},
-			errMsg: "",
-		},
-		"#5 Some missing fields (e.g. ClientTimeout) are supplemented from DefaultCfg": {
-			fixtureFile: "config_missing_fields.toml",
-			want: &Config{
-				Path:                   filepath.Join(configTestFixturesDir, "config_missing_fields.toml"),
-				Debug:                  false,
-				LogOutput:              "",
-				ClientTimeout:          10,
-				RalphAPIURL:            "http://localhost:8080/api",
-				RalphAPIKey:            "abcdefghijklmnopqrstuwxyz0123456789ABCDE",
-				ManagementUserName:     "some_user",
-				ManagementUserPassword: "some_password",
 			},
 			errMsg: "",
 		},

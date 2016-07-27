@@ -105,12 +105,10 @@ func (c *Client) GetFromRalph(endpoint string, query string) ([]byte, error) {
 		return []byte{}, err
 	}
 	resp, err := c.client.Do(req)
-	// TODO(xor-xor): When url points to a non-existing Ralph instance, it
-	// causes panic somewhere around here.
-	defer resp.Body.Close()
 	if err != nil {
 		return []byte{}, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		return []byte{}, fmt.Errorf("error while sending a GET request to Ralph: %s",
 			resp.Status)

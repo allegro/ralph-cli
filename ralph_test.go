@@ -336,67 +336,82 @@ func TestDataCenterAssetIsEqualTo(t *testing.T) {
 		want    bool
 	}{
 		"#0 All equal": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			true,
 		},
 		"#1 All different": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{2, PtrTo("2.2.2"), PtrTo("1.1.1"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(2), PtrToStr("2.2.2"), PtrToStr("1.1.1"), PtrToStr("some other remark"), PtrToStr("SN4321")},
 			false,
 		},
 		"#2 Different FirmwareVersion 1": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("3.3.3"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("3.3.3"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#3 Different FirmwareVersion 2": {
-			&DataCenterAsset{1, nil, PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.q"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), nil, PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#4 Different FirmwareVersion 3": {
-			&DataCenterAsset{1, PtrTo("1.1.q"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, nil, PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), nil, PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#5 Different BIOSVersion 1": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("3.3.3"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("3.3.3"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#6 Different BIOSVersion 2": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), nil, PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), nil, PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#7 Different BIOSVersion 3": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.1"), nil, PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), nil, PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#8 Different Remarks 1": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some other remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some other remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#9 Different Remarks 2": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), nil},
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), nil, PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			false,
 		},
 		"#10 Different Remarks 3": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("some remark")},
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), nil},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), nil, PtrToStr("SN1234")},
 			false,
 		},
-		"#11 Component given as object, not pointer": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("Some remark")},
-			DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("Some remark")},
+		"#11 Different SerialNumber 1": {
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN4321")},
+			false,
+		},
+		"#12 Different SerialNumber 2": {
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), nil},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			false,
+		},
+		"#13 Different SerialNumber 3": {
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), nil},
+			false,
+		},
+		"#14 Component given as object, not pointer": {
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
+			DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			true,
 		},
-		"#12 Component other than DataCenterAsset given": {
-			&DataCenterAsset{1, PtrTo("1.1.1"), PtrTo("2.2.2"), PtrTo("Some remark")},
+		"#15 Component other than DataCenterAsset given": {
+			&DataCenterAsset{PtrToInt(1), PtrToStr("1.1.1"), PtrToStr("2.2.2"), PtrToStr("some remark"), PtrToStr("SN1234")},
 			FakeComponent{},
 			false,
 		},
@@ -1372,8 +1387,11 @@ func TestGetDataCenterAsset(t *testing.T) {
 			"data_center_asset.json",
 			BaseObject{1},
 			&DataCenterAsset{
-				FirmwareVersion: PtrTo("1.1.1"),
-				BIOSVersion:     PtrTo("2.2.2"),
+				ID:              PtrToInt(1),
+				FirmwareVersion: PtrToStr("1.1.1"),
+				BIOSVersion:     PtrToStr("2.2.2"),
+				Remarks:         PtrToStr("some remark"),
+				SerialNumber:    PtrToStr("SN1234"),
 			},
 		},
 	}
@@ -1508,19 +1526,21 @@ func TestDataCenterAssetToString(t *testing.T) {
 	}{
 		"#0 All pointer fields are different than nil": {
 			DataCenterAsset{
-				ID:              1,
-				FirmwareVersion: PtrTo("1.1.1"),
-				BIOSVersion:     PtrTo("2.2.2"),
-				Remarks:         PtrTo("some remark"),
+				ID:              PtrToInt(1),
+				FirmwareVersion: PtrToStr("1.1.1"),
+				BIOSVersion:     PtrToStr("2.2.2"),
+				Remarks:         PtrToStr("some remark"),
+				SerialNumber:    PtrToStr("SN1234"),
 			},
-			`DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2, remarks: some remark}`,
+			`DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2, remarks: some remark, sn: SN1234}`,
 		},
 		"#1 Pointer fields equal to nil are omitted": {
 			DataCenterAsset{
-				ID:              1,
-				FirmwareVersion: PtrTo("1.1.1"),
-				BIOSVersion:     PtrTo("2.2.2"),
+				ID:              PtrToInt(1),
+				FirmwareVersion: PtrToStr("1.1.1"),
+				BIOSVersion:     PtrToStr("2.2.2"),
 				Remarks:         nil,
+				SerialNumber:    nil,
 			},
 			`DataCenterAsset{id: 1, firmware_version: 1.1.1, bios_version: 2.2.2}`,
 		},

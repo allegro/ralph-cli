@@ -96,7 +96,7 @@ func NewDiffComponent(component Component) (*DiffComponent, error) {
 	case Disk:
 		return NewDiffComponent(&v)
 	case *DataCenterAsset:
-		id = v.ID
+		id = *v.ID
 		name = "DataCenterAsset"
 		data, err = json.Marshal(v)
 		if err != nil {

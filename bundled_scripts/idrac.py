@@ -90,6 +90,7 @@ DISK_TEMPLATE = {
     "firmware_version": "",  # unused (iDRAC doesn't provide this info yet).
 }
 
+
 def normalize_mac_address(mac_address):
     mac_address = mac_address.upper().replace('-', ':')
     return mac_address
@@ -273,18 +274,15 @@ def _get_ethernets(idrac_manager):
     )
     ethernets = []
     for record in tree.findall(q):
+        ethernet = deepcopy(ETHERNET_TEMPLATE)
         mac = get_mac()
         if not mac:
             continue
-        model = get_model(mac)
-        speed = get_speed(model)
-        ver = get_fw_version()
-        ethernet = {
-            "mac": mac,
-            "model_name": model,
-            "speed": speed,
-            "firmware_version": ver,
-        }
+        ethernet['mac'] = mac
+        model_name = get_model(mac)
+        ethernet['model_name'] = model_name
+        ethernet['speed'] = get_speed(model_name)
+        ethernet['firmware_version'] = get_fw_version()
         ethernets.append(ethernet)
     return ethernets
 
@@ -298,27 +296,20 @@ def _get_processors(idrac_manager):
         XMLNS_WSMAN,
         xmlns_n1,
     )
-    results = []
+    processors = []
     for record in tree.findall(q):
-        model = record.find("{}{}".format(xmlns_n1, 'Model')).text.strip()
-        try:
-            index = int(
-                record.find(
-                    "{}{}".format(xmlns_n1, 'InstanceID'),
-                ).text.strip().split('.')[-1],
-            )
-        except (ValueError, IndexError):
-            continue
-        results.append({
-            'model_name': model,
-            'speed': int(record.find(
-                "{}{}".format(xmlns_n1, 'CurrentClockSpeed'),
-            ).text.strip()),
-            'cores': int(record.find(
-                "{}{}".format(xmlns_n1, 'NumberOfProcessorCores'),
-            ).text.strip()),
-        })
-    return results
+        processor = deepcopy(PROCESSOR_TEMPLATE)
+        processor['model_name'] = record.find(
+            "{}{}".format(xmlns_n1, 'Model')
+        ).text.strip()
+        processor['speed'] = int(record.find(
+            "{}{}".format(xmlns_n1, 'CurrentClockSpeed'),
+        ).text.strip())
+        processor['cores'] = int(record.find(
+            "{}{}".format(xmlns_n1, 'NumberOfProcessorCores'),
+        ).text.strip())
+        processors.append(processor)
+    return processors
 
 
 def _get_memory(idrac_manager):
@@ -330,24 +321,22 @@ def _get_memory(idrac_manager):
         XMLNS_WSMAN,
         xmlns_n1,
     )
-    return [
-        {
-            'model_name': '{} {}'.format(
-                record.find(
-                    "{}{}".format(xmlns_n1, 'Manufacturer'),
-                ).text.strip(),
-                record.find(
-                    "{}{}".format(xmlns_n1, 'Model'),
-                ).text.strip(),
-            ),
-            'size': int(record.find(
-                "{}{}".format(xmlns_n1, 'Size'),
-            ).text.strip()),
-            'speed': int(record.find(
-                "{}{}".format(xmlns_n1, 'Speed'),
-            ).text.strip()),
-        } for record in tree.findall(q)
-    ]
+
+    memory = []
+    for record in tree.findall(q):
+        mem = deepcopy(MEMORY_TEMPLATE)
+        mem['model_name'] = '{} {}'.format(
+            record.find("{}{}".format(xmlns_n1, 'Manufacturer')).text.strip(),
+            record.find("{}{}".format(xmlns_n1, 'Model')).text.strip(),
+        )
+        mem['size'] = int(
+            record.find("{}{}".format(xmlns_n1, 'Size')).text.strip()
+        )
+        mem['speed'] = int(
+            record.find("{}{}".format(xmlns_n1, 'Speed')).text.strip()
+        )
+        memory.append(mem)
+    return memory
 
 
 def _get_disks(idrac_manager):
@@ -367,28 +356,25 @@ def _get_disks(idrac_manager):
     )
     disks = []
     for record in tree.findall(q):
+        disk = deepcopy(DISK_TEMPLATE)
         manufacturer = record.find(
             "{}{}".format(xmlns_n1, 'Manufacturer'),
         ).text.strip()
-        model_name = '{} {}'.format(
+        disk['model_name'] = '{} {}'.format(
             manufacturer,
-            record.find(
-                "{}{}".format(xmlns_n1, 'Model')
-            ).text.strip(),
+            record.find("{}{}".format(xmlns_n1, 'Model')).text.strip(),
         )
         size_in_bytes = record.find(
             '{}{}'.format(xmlns_n1, 'SizeInBytes'),
         ).text
+        disk['size'] = normalize_disk_size(size_in_bytes)
         serial_number = record.find(
             '{}{}'.format(xmlns_n1, 'SerialNumber'),
         ).text
+        disk['serial_number'] = serial_number and serial_number.strip() or ''
         slot = record.find(
             '{}{}'.format(xmlns_n1, 'Slot'),
         ).text
-        disk = deepcopy(DISK_TEMPLATE)
-        disk['model_name'] = model_name
-        disk['size'] = normalize_disk_size(size_in_bytes)
-        disk['serial_number'] = serial_number and serial_number.strip() or ''
         disk['slot'] = int(slot) if slot else None
         disks.append(disk)
     return disks

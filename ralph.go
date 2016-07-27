@@ -32,7 +32,7 @@ func (a Addr) GetBaseObject(c *Client) (*BaseObject, error) {
 
 	var baseObjs BaseObjectList
 	if err := json.Unmarshal(rawBody, &baseObjs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling base object: %v", err)
+		return nil, fmt.Errorf("error unmarshaling base object: %v", err)
 	}
 
 	switch {
@@ -81,7 +81,7 @@ func (b BaseObject) GetEthernets(c *Client) ([]*Ethernet, error) {
 	}
 	var eths EthernetList
 	if err := json.Unmarshal(rawBody, &eths); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Ethernet: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Ethernet: %v", err)
 	}
 	ethsPtrs := make([]*Ethernet, eths.Count)
 	for i := 0; i < eths.Count; i++ {
@@ -103,7 +103,7 @@ func (b BaseObject) GetMemory(c *Client) ([]*Memory, error) {
 	}
 	var mems MemoryList
 	if err := json.Unmarshal(rawBody, &mems); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Memory: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Memory: %v", err)
 	}
 	memsPtrs := make([]*Memory, mems.Count)
 	for i := 0; i < mems.Count; i++ {
@@ -122,7 +122,7 @@ func (b BaseObject) GetFibreChannelCards(c *Client) ([]*FibreChannelCard, error)
 	}
 	var cards FibreChannelCardList
 	if err := json.Unmarshal(rawBody, &cards); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling FibreChannelCard: %v", err)
+		return nil, fmt.Errorf("error unmarshaling FibreChannelCard: %v", err)
 	}
 	cardsPtrs := make([]*FibreChannelCard, cards.Count)
 	for i := 0; i < cards.Count; i++ {
@@ -141,7 +141,7 @@ func (b BaseObject) GetProcessors(c *Client) ([]*Processor, error) {
 	}
 	var procs ProcessorList
 	if err := json.Unmarshal(rawBody, &procs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Processor: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Processor: %v", err)
 	}
 	procsPtrs := make([]*Processor, procs.Count)
 	for i := 0; i < procs.Count; i++ {
@@ -159,7 +159,7 @@ func (b BaseObject) GetDisks(c *Client) ([]*Disk, error) {
 	}
 	var disks DiskList
 	if err := json.Unmarshal(rawBody, &disks); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling Disk: %v", err)
+		return nil, fmt.Errorf("error unmarshaling Disk: %v", err)
 	}
 	disksPtrs := make([]*Disk, disks.Count)
 	for i := 0; i < disks.Count; i++ {
@@ -179,7 +179,7 @@ func (b BaseObject) GetDataCenterAsset(c *Client) (*DataCenterAsset, error) {
 	}
 	var dcAsset DataCenterAsset
 	if err := json.Unmarshal(rawBody, &dcAsset); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling DataCenterAsset: %v", err)
+		return nil, fmt.Errorf("error unmarshaling DataCenterAsset: %v", err)
 	}
 	return &dcAsset, nil
 }
@@ -1060,54 +1060,66 @@ func CompareDisks(old, new []*Disk) (*Diff, error) {
 }
 
 // DataCenterAsset is meant only for updating firmware_version and bios_version
-// fields on Ralph's DataCenterAsset model, and for putting ScanResult.Model
-// into Remarks. This datatype should be sent to Ralph only with PATCH method.
-// It is also an experiment with the approach presented in this article:
+// fields on Ralph's DataCenterAsset model, putting ScanResult.Model into
+// Remarks and for determining correctness of SerialNumber (detected vs. stored
+// in Ralph). This datatype should be sent to Ralph only with PATCH method. It
+// is also an experiment with the approach presented in this article:
 // https://willnorris.com/2014/05/go-rest-apis-and-pointers (struct fields as
 // pointers facilitating PATCH-ing a resource).
 type DataCenterAsset struct {
-	ID              int     `json:"-"`
+	ID              *int    `json:"id,omitempty"`
 	FirmwareVersion *string `json:"firmware_version,omitempty"`
 	BIOSVersion     *string `json:"bios_version,omitempty"`
 	Remarks         *string `json:"remarks,omitempty"`
+	SerialNumber    *string `json:"sn,omitempty"`
 }
 
-// String for DataCenterAsset will present only the fields that are not nil,
-// except for the ID field, which is not a pointer and always will be presented.
+// String for DataCenterAsset will present only the fields that are not nil.
 func (a DataCenterAsset) String() string {
-	str := fmt.Sprintf("id: %d", a.ID)
+	var str string
+	if a.ID != nil {
+		str += fmt.Sprintf("id: %d, ", *a.ID)
+	}
 	if a.FirmwareVersion != nil {
-		str += fmt.Sprintf(", firmware_version: %s", *a.FirmwareVersion)
+		str += fmt.Sprintf("firmware_version: %s, ", *a.FirmwareVersion)
 	}
 	if a.BIOSVersion != nil {
-		str += fmt.Sprintf(", bios_version: %s", *a.BIOSVersion)
+		str += fmt.Sprintf("bios_version: %s, ", *a.BIOSVersion)
 	}
 	if a.Remarks != nil {
 		remarks := strings.Replace(*a.Remarks, "\r\n", " ", -1)
 		remarks = strings.Replace(remarks, "\n", " ", -1)
-		str += fmt.Sprintf(", remarks: %s", remarks)
+		str += fmt.Sprintf("remarks: %s, ", remarks)
 	}
-	return fmt.Sprintf("DataCenterAsset{%s}", str)
+	if a.SerialNumber != nil {
+		str += fmt.Sprintf("sn: %s, ", *a.SerialNumber)
+	}
+	return fmt.Sprintf("DataCenterAsset{%s}", strings.TrimSuffix(str, ", "))
 }
 
 // IsEqualTo implements Component interface. This method compares two
 // DataCenterAsset objects for equality. Please note that DataCenterAsset.ID *is
 // not* taken into account here, and that this method's body slightly differs
-// from other components because most of DataCenterAsset fields are pointers.
+// from other components because all DataCenterAsset fields are pointers.
 func (a DataCenterAsset) IsEqualTo(c Component) bool {
 	switch aa := c.(type) {
 	case *DataCenterAsset:
 		switch {
-		case a.FirmwareVersion == nil && aa.FirmwareVersion != nil ||
+		// Checking if exactly one of the pointers is nil.
+		case a.FirmwareVersion == nil && aa.FirmwareVersion != nil,
 			a.FirmwareVersion != nil && aa.FirmwareVersion == nil:
 			return false
-		case a.BIOSVersion == nil && aa.BIOSVersion != nil ||
+		case a.BIOSVersion == nil && aa.BIOSVersion != nil,
 			a.BIOSVersion != nil && aa.BIOSVersion == nil:
 			return false
-		case a.Remarks == nil && aa.Remarks != nil ||
+		case a.Remarks == nil && aa.Remarks != nil,
 			a.Remarks != nil && aa.Remarks == nil:
 			return false
+		case a.SerialNumber == nil && aa.SerialNumber != nil,
+			a.SerialNumber != nil && aa.SerialNumber == nil:
+			return false
 
+		// Checking if both pointers are not nil and the contents are different.
 		case a.FirmwareVersion != nil && aa.FirmwareVersion != nil &&
 			*a.FirmwareVersion != *aa.FirmwareVersion:
 			return false
@@ -1116,6 +1128,9 @@ func (a DataCenterAsset) IsEqualTo(c Component) bool {
 			return false
 		case a.Remarks != nil && aa.Remarks != nil &&
 			*a.Remarks != *aa.Remarks:
+			return false
+		case a.SerialNumber != nil && aa.SerialNumber != nil &&
+			*a.SerialNumber != *aa.SerialNumber:
 			return false
 
 		default:
@@ -1150,7 +1165,7 @@ func getIPAddresses(query string, c *Client) (*IPAddressList, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(rawBody, &addrs); err != nil {
-		return nil, fmt.Errorf("error while unmarshaling IPAddress: %v", err)
+		return nil, fmt.Errorf("error unmarshaling IPAddress: %v", err)
 	}
 	return &addrs, nil
 }

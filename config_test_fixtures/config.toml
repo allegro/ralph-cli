@@ -1,6 +1,3 @@
-Debug = false
-LogOutput = ""
-ClientTimeout = 10
 RalphAPIURL = "http://localhost:8080/api"
 RalphAPIKey = "abcdefghijklmnopqrstuwxyz0123456789ABCDE"
 ManagementUserName = "some_user"

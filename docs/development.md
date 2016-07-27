@@ -40,8 +40,6 @@ Here are some of the ideas that we are working on, or that may be implemented in
 * Ability to refresh/recreate virtualenvs used by scan scripts written in Python
   (e.g. after adding new dependency to manifest file).
 * Integration with [Logstash][logstash] (this is almost ready, though).
-* Ability to create/update/delete other components than network cards,
-  e.g. `ralph-cli scan --components=disk,memory,processor` etc.
 * Ability to feed `ralph-cli scan` with ready-made JSON files (i.e. without
   launching any scan scripts).
 * Ability to update all components detected by scan on a given host at once
@@ -50,6 +48,7 @@ Here are some of the ideas that we are working on, or that may be implemented in
   precedence over the config file.
 * Ability to scan whole range of hosts/networks (at this moment, `ralph-cli`
   operates only on single hosts).
+* Support for Windows.
 * Some minor improvements like setting timeouts for scan, adding progress bars etc.
 
 ### Later

@@ -3,13 +3,16 @@
 `ralph-cli` is a command-line interface for [Ralph][ralph]. Its goal is to serve
 as a "Swiss Army knife" for all the Ralph's functionality that is reasonable
 enough for bringing it from web GUI to your terminal. At this moment, you can
-use it for discovering MAC addresses of your hardware (with `scan` command), but
-we are going to extend the functionality in the future (see
+use it for discovering components of your hardware (with `scan` command), but we
+are going to extend the functionality in the future (see
 [Ideas for Future Development][development-ideas]).
 
 Please note that `ralph-cli` should be considered as "work in progress" aka
 "early beta", so keep in mind that until the `1.0.0` version is reached, things
 *will* get changed and *may* be broken!
+
+At this moment, we support only Linux and Mac OS X operating systems, but we
+have Windows on our roadmap, so stay tuned.
 
 ## Relation to "beast" (old ralph-cli)
 

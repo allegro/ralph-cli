@@ -124,3 +124,136 @@ func TestExcludeExposedInDHCP(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateBIOSAndFirmwareVersions(t *testing.T) {
+	var cases = map[string]struct {
+		scanResult *ScanResult
+		dcAsset    *DataCenterAsset
+		want       bool
+		// We may also check if unchanged dcAsset's fields are getting nil.
+	}{
+		"#0 Different FirmwareVersion": {
+			&ScanResult{FirmwareVersion: "2.2.2"},
+			&DataCenterAsset{FirmwareVersion: PtrToStr("1.1.1")},
+			true,
+		},
+		"#1 Different FirmwareVersion (dcAsset.FirmwareVersion == nil)": {
+			&ScanResult{FirmwareVersion: "1.1.1"},
+			&DataCenterAsset{},
+			true,
+		},
+		"#2 Equal FirmwareVersion": {
+			&ScanResult{FirmwareVersion: "1.1.1"},
+			&DataCenterAsset{FirmwareVersion: PtrToStr("1.1.1")},
+			false,
+		},
+		"#3 Different BIOSVersion": {
+			&ScanResult{BIOSVersion: "2.2.2"},
+			&DataCenterAsset{BIOSVersion: PtrToStr("1.1.1")},
+			true,
+		},
+		"#4 Different BIOSVersion (dcAsset.BIOSVersion == nil)": {
+			&ScanResult{BIOSVersion: "1.1.1"},
+			&DataCenterAsset{},
+			true,
+		},
+		"#5 Equal BIOSVersion": {
+			&ScanResult{BIOSVersion: "1.1.1"},
+			&DataCenterAsset{BIOSVersion: PtrToStr("1.1.1")},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := updateBIOSAndFirmwareVersions(tc.scanResult, tc.dcAsset)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+}
+
+func TestUpdateModelName(t *testing.T) {
+	var cases = map[string]struct {
+		scanResult  *ScanResult
+		dcAsset     *DataCenterAsset
+		wantChanged bool
+		wantRemarks string
+	}{
+		"#0 Different": {
+			&ScanResult{ModelName: "Dell PowerEdge R620"},
+			&DataCenterAsset{Remarks: PtrToStr(">>> ralph-cli: detected model name: Dell PowerEdge R720 <<<")},
+			true,
+			">>> ralph-cli: detected model name: Dell PowerEdge R620 <<<",
+		},
+		"#1 Different (empty remarks)": {
+			&ScanResult{ModelName: "Dell PowerEdge R620"},
+			&DataCenterAsset{Remarks: PtrToStr("")},
+			true,
+			">>> ralph-cli: detected model name: Dell PowerEdge R620 <<<",
+		},
+		"#2 Different (empty ScanResult.ModelName)": {
+			&ScanResult{ModelName: ""},
+			&DataCenterAsset{Remarks: PtrToStr("some remark")},
+			false,
+			"some remark",
+		},
+		"#3 Equal": {
+			&ScanResult{ModelName: "Dell PowerEdge R620"},
+			&DataCenterAsset{Remarks: PtrToStr(">>> ralph-cli: detected model name: Dell PowerEdge R620 <<<")},
+			false,
+			">>> ralph-cli: detected model name: Dell PowerEdge R620 <<<",
+		},
+		"#4 Remark with ModelName is appended non-destructively": {
+			&ScanResult{ModelName: "Dell PowerEdge R620"},
+			&DataCenterAsset{Remarks: PtrToStr("some remark")},
+			true,
+			"some remark\n>>> ralph-cli: detected model name: Dell PowerEdge R620 <<<",
+		},
+		"#5 Different (ModelName in remarks, but not in ScanResult)": {
+			&ScanResult{ModelName: ""},
+			&DataCenterAsset{Remarks: PtrToStr(">>> ralph-cli: detected model name: Dell PowerEdge R620 <<<")},
+			true,
+			"",
+		},
+	}
+	for tn, tc := range cases {
+		got := updateModelName(tc.scanResult, tc.dcAsset)
+		if got != tc.wantChanged {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.wantChanged)
+		}
+		// Since dcAsset.Remarks is mutated by updateModelName, we need to check
+		// it as well.
+		if *tc.dcAsset.Remarks != tc.wantRemarks {
+			t.Errorf("%s\n got remarks: %v\nwant remarks: %v", tn, *tc.dcAsset.Remarks, tc.wantRemarks)
+		}
+	}
+}
+
+func TestVerifySerialNumber(t *testing.T) {
+	var cases = map[string]struct {
+		dcAsset    *DataCenterAsset
+		scanResult *ScanResult
+		want       bool
+	}{
+		"#0 Different": {
+			&DataCenterAsset{SerialNumber: PtrToStr("SN1234")},
+			&ScanResult{SN: "SN4321"},
+			true,
+		},
+		"#1 Different (dcAsset.SerialNumber == nil)": {
+			&DataCenterAsset{},
+			&ScanResult{SN: "SN4321"},
+			true,
+		},
+		"#2 Equal": {
+			&DataCenterAsset{SerialNumber: PtrToStr("SN1234")},
+			&ScanResult{SN: "SN1234"},
+			false,
+		},
+	}
+	for tn, tc := range cases {
+		got := verifySerialNumber(tc.dcAsset, tc.scanResult, true)
+		if got != tc.want {
+			t.Errorf("%s\n got: %v\nwant: %v", tn, got, tc.want)
+		}
+	}
+}

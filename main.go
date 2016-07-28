@@ -69,7 +69,7 @@ func main() {
 		}
 	})
 
-	app.Version("v version", "0.1.0")
+	app.Version("v version", "0.2.0")
 	app.Run(os.Args)
 }
 

@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-Released on (TBA)
+Released on July 28, 2016.
 
 * `scan` command: ability to handle `Ethernet`, `Memory`, `FibreChannelCard`,
   `Processor` and `Disk` components as well as `FirmwareVersion` and

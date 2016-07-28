@@ -13,10 +13,11 @@ func TestParseComponents(t *testing.T) {
 		want       *map[string]bool
 	}{
 		"#0 All valid components": {
-			"all,eth,mem,fcc,cpu,disk",
+			"eth,mem,fcc,cpu,disk",
 			"",
 			&map[string]bool{
-				"all":  true,
+				"none": false,
+				"all":  false,
 				"eth":  true,
 				"mem":  true,
 				"fcc":  true,
@@ -27,6 +28,16 @@ func TestParseComponents(t *testing.T) {
 		"#1 Unknown component": {
 			"eth,mem,printer",
 			"unknown component: printer",
+			nil,
+		},
+		"#2 \"none\" option should be used exclusively": {
+			"none,eth,mem",
+			"invalid combination",
+			nil,
+		},
+		"#3 \"all\" option should be used exclusively": {
+			"all,eth,mem",
+			"invalid combination",
 			nil,
 		},
 	}

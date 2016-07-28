@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -44,7 +45,7 @@ func main() {
 	app.Command("scan", "Perform scan of a given host", func(cmd *cli.Cmd) {
 		addr := cmd.StringArg("IP_ADDR", "", "IP address of a host to scan")
 		script := cmd.StringOpt("script", "", "Script to be executed")
-		componentsRaw := cmd.StringOpt("components", "all", "Components to discover - possible values: all, eth, mem, fcc, cpu, disk")
+		componentsRaw := cmd.StringOpt("components", "none", "Components to discover - possible values: none | all | eth,mem,fcc,cpu,disk")
 		withBIOSAndFirmware := cmd.BoolOpt("with-bios-and-firmware", false, "Try to discover BIOS and firmware versions")
 		withModel := cmd.BoolOpt("with-model", false, "Append detected model name to \"Remarks\" field in Ralph")
 		dryRun := cmd.BoolOpt("dry-run", false, "Don't save anything in Ralph")
@@ -55,11 +56,16 @@ func main() {
 			if *script == "" {
 				log.Fatalln("No script supplied to '--script' switch. Aborting.")
 			}
+			// TODO(xor-xor): Consider adding some message when no --components
+			// *and* --with-bios-and-firmware *and* --with-model is given, or
+			// make at least one of them required.
 			components, err := parseComponents(*componentsRaw)
 			if err != nil {
-				log.Fatalf("Error parsing value for '--component' switch: %s. Aborting.", err)
+				log.Fatalf("Error parsing value(s) for '--component' switch: %s. Aborting.", err)
 			}
-			PerformScan(*addr, *script, *components, *withBIOSAndFirmware, *withModel, *dryRun, cfg, cfgDir)
+			if changesDetected := PerformScan(*addr, *script, *components, *withBIOSAndFirmware, *withModel, *dryRun, cfg, cfgDir); !changesDetected {
+				log.Println("No changes detected.")
+			}
 		}
 	})
 
@@ -72,6 +78,7 @@ func main() {
 // component is found.
 func parseComponents(componentsRaw string) (*map[string]bool, error) {
 	var components = map[string]bool{
+		"none": false,
 		"all":  false,
 		"eth":  false,
 		"mem":  false,
@@ -79,11 +86,18 @@ func parseComponents(componentsRaw string) (*map[string]bool, error) {
 		"cpu":  false,
 		"disk": false,
 	}
-	for _, c := range strings.Split(componentsRaw, ",") {
+	cc := strings.Split(componentsRaw, ",")
+	for _, c := range cc {
 		if _, ok := components[c]; !ok {
 			return nil, fmt.Errorf("unknown component: %s", c)
 		}
 		components[c] = true
+	}
+	if components["none"] == true && len(cc) > 1 {
+		return nil, errors.New("invalid combination: \"none\" option should be used exclusively")
+	}
+	if components["all"] == true && len(cc) > 1 {
+		return nil, errors.New("invalid combination: \"all\" option should be used exclusively")
 	}
 	return &components, nil
 }

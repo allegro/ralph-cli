@@ -9,8 +9,10 @@ import (
 	"strings"
 )
 
-// PerformScan runs a scan of a given host using a script with scriptName.
-func PerformScan(addrStr, scriptName string, components map[string]bool, withBIOSAndFirmware, withModel, dryRun bool, cfg *Config, cfgDir string) {
+// PerformScan runs a scan of a given host using a script with
+// scriptName. Returns true if some changes in components and/or firmware/BIOS
+// versions and/or model name are detected, false othwerwise.
+func PerformScan(addrStr, scriptName string, components map[string]bool, withBIOSAndFirmware, withModel, dryRun bool, cfg *Config, cfgDir string) bool {
 	if dryRun {
 		// TODO(xor-xor): Wire up logger here.
 		fmt.Println("INFO: Running in dry-run mode, no changes will be saved in Ralph.")
@@ -53,6 +55,12 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 	if changed := verifySerialNumber(dcAsset, result, false); changed {
 		changesDetected = true
 	}
+	if changed := updateDataCenterAsset(withBIOSAndFirmware, withModel, result, baseObj, dcAsset, client, dryRun); changed {
+		changesDetected = true
+	}
+	if components["none"] {
+		return changesDetected
+	}
 	if components["eth"] || components["all"] {
 		if changed := updateEthernets(addr, result, baseObj, client, dryRun); changed {
 			changesDetected = true
@@ -78,12 +86,7 @@ func PerformScan(addrStr, scriptName string, components map[string]bool, withBIO
 			changesDetected = true
 		}
 	}
-	if changed := updateDataCenterAsset(withBIOSAndFirmware, withModel, result, baseObj, dcAsset, client, dryRun); changed {
-		changesDetected = true
-	}
-	if !changesDetected {
-		fmt.Println("No changes detected.")
-	}
+	return changesDetected
 }
 
 func updateEthernets(addr Addr, result *ScanResult, baseObj *BaseObject, client *Client, dryRun bool) bool {

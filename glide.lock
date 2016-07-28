@@ -1,5 +1,5 @@
-hash: 2c0b87ba2ec1a30707d9884b79ed952d64e47b49fb964990e0d1dadd6ef9c1fe
-updated: 2016-06-06T13:40:57.517523169+02:00
+hash: 15d4debafb2dcf871edda9c8312590eeb68121f1829a83f98c49584eccf918ee
+updated: 2016-07-28T11:49:48.648899061+02:00
 imports:
 - name: github.com/BurntSushi/toml
   version: f0aeabca5a127c4078abb8c8d64298b147264b55
@@ -11,21 +11,6 @@ imports:
   version: e71f328f50bbfc3bae5f0184760e7e151e4fca7f
   subpackages:
   - checkers
-- name: github.com/labstack/gommon
-  version: 2e62be24dbb1ceb226554aaccfe5a89ec71043b3
-  subpackages:
-  - log
-  - color
-- name: github.com/mattn/go-colorable
-  version: bc69d6cebca8dd5675346a34a1c545b67dc74d5e
-- name: github.com/mattn/go-isatty
-  version: 56b76bdf51f7708750eac80fa38b952bb9f32639
-- name: github.com/valyala/fasttemplate
-  version: 3b874956e03f1636d171bda64b130f9135f42cff
-- name: golang.org/x/sys
-  version: b776ec39b3e54652e09028aaaaac9757f4f8211a
-  subpackages:
-  - unix
 - name: gopkg.in/check.v1
   version: 4f90aeace3a26ad7021961c297b22c42160c7b25
 - name: gopkg.in/yaml.v2

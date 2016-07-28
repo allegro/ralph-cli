@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/jawher/mow.cli"
-	gommonlog "github.com/labstack/gommon/log"
 )
 
 func main() {
@@ -38,7 +37,6 @@ func main() {
 		w = os.Stderr
 	}
 	log.SetOutput(w)
-	gommonlog.SetOutput(w)
 
 	app := cli.App("ralph-cli", "Command-line interface for Ralph")
 

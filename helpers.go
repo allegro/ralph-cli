@@ -45,9 +45,6 @@ func GetTempCfgDir() (cfgDir, baseDir string, err error) {
 	if err != nil {
 		goto FAIL
 	}
-	if err != nil {
-		goto FAIL
-	}
 	err = PrepareCfgDir(cfgDir, "config.toml")
 	if err != nil {
 		goto FAIL

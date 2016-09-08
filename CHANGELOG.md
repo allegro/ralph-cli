@@ -2,7 +2,7 @@
 
 ## 0.3.0
 
-Released on (TBA)
+Released on September 8, 2016.
 
 * Add support for iLO4.
 

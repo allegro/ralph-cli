@@ -61,25 +61,31 @@ def get_ilo_instance(host, user, password):
 
 def _get_ethernets(raw_macs, ilo_version):
     # The data structure for MAC addresses returned from hpilo is pretty nasty,
-    # especially for iLO3 (no clear distinction between embedded NICs and
-    # iSCSI ports).
-    if ilo_version == 3:
-        start_idx = 0
-    else:
-        start_idx = 1
+    # especially for iLO3 (no clear distinction between embedded NICs and iSCSI
+    # ports).
     ethernets = []
-    for m in raw_macs:
-        fields = m.get('fields', [])
-        for i in range(start_idx, len(fields), 2):
-            if (
-                fields[i]['name'] == 'Port' and
-                fields[i]['value'] != 'iLO'  # belongs to mgmt address
-            ):
-                mac = normalize_mac(fields[i + 1]['value'])
-                if mac[:6] not in MAC_PREFIX_BLACKLIST:
-                    eth = deepcopy(ETHERNET_TEMPLATE)
-                    eth["mac"] = mac
-                    ethernets.append(eth)
+    if ilo_version in ['iLO2', 'iLO3']:
+        if ilo_version == 'iLO3':
+            start_idx = 0
+        else:
+            start_idx = 1
+        for m in raw_macs:
+            fields = m.get('fields', [])
+            for i in range(start_idx, len(fields), 2):
+                if (
+                    fields[i]['name'] == 'Port' and
+                    fields[i]['value'] != 'iLO'  # belongs to mgmt address
+                ):
+                    mac = normalize_mac(fields[i + 1]['value'])
+                    if mac[:6] not in MAC_PREFIX_BLACKLIST:
+                        eth = deepcopy(ETHERNET_TEMPLATE)
+                        eth['mac'] = mac
+                        ethernets.append(eth)
+    elif ilo_version == 'iLO4':
+        for m in raw_macs:
+            eth = deepcopy(ETHERNET_TEMPLATE)
+            eth['mac'] = normalize_mac(m['MAC'])
+            ethernets.append(eth)
     return ethernets
 
 
@@ -133,7 +139,7 @@ def _prepare_host_data(raw_host_data, ilo_version):
         "memory": [],
         "mac_addresses": [],
     }
-    if ilo_version == 2:
+    if ilo_version == 'iLO2':
         for part in raw_host_data:
             if part.get('Subject') == 'System Information':
                 host_data['sys_info'].append(part)
@@ -157,7 +163,7 @@ def _prepare_host_data(raw_host_data, ilo_version):
                         host_data['mac_addresses'].append(part)
                         break
                 continue
-    elif ilo_version == 3:
+    elif ilo_version == 'iLO3':
         for part in raw_host_data:
             if part.get('Product Name') is not None:
                 host_data['sys_info'].append(part)
@@ -185,25 +191,32 @@ def _prepare_host_data(raw_host_data, ilo_version):
                         host_data['mac_addresses'].append(part)
                         break
                 continue
+    elif ilo_version == 'iLO4':
+        for part in raw_host_data:
+            if part.get('Product Name') is not None:
+                host_data['sys_info'].append(part)
+                continue
+            if part.get('Execution Technology') is not None:
+                host_data['processors'].append(part)
+                continue
+            if (
+                part.get('Label') is not None and
+                part.get('Size') is not None and
+                part.get('Speed') is not None
+            ):
+                host_data['memory'].append(part)
+                continue
+            if part.get('MAC') is not None:
+                host_data['mac_addresses'].append(part)
+                continue
     else:
-        raise IloError("Unknown version of iLO: %d".format(ilo_version))
+        raise IloError("Unsupported version of iLO ({}).".format(ilo_version))
     if len(host_data['sys_info']) > 1:
         raise IloError(
             "There should be only one 'System Information' dict "
             "in the data returned by python-hpilo."
         )
     return host_data
-
-
-def get_ilo_version(ilo_manager):
-    fw_version = ilo_manager.get_fw_version()
-    if fw_version.get('management_processor') == "iLO3":
-        ilo_version = 3
-    elif fw_version.get('management_processor') == "iLO2":
-        ilo_version = 2
-    else:
-        ilo_version = None
-    return ilo_version
 
 
 def ilo_device_info(ilo_manager, ilo_version):
@@ -232,7 +245,8 @@ def scan(host, user, password):
     if password == "":
         raise IloError("No management password has been provided.")
     ilo_manager = get_ilo_instance(host, user, password)
-    ilo_version = get_ilo_version(ilo_manager)
+    fw_version = ilo_manager.get_fw_version()
+    ilo_version = fw_version.get('management_processor')
     device_info = ilo_device_info(ilo_manager, ilo_version)
     print(json.dumps(device_info))
 

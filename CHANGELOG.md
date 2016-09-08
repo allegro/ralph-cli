@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.3.0
+
+Released on (TBA)
+
+* Add support for iLO4.
+
 ## 0.2.0
 
 Released on July 28, 2016.

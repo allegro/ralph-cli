@@ -7,7 +7,7 @@ Linux
 
 The simplest way to install ralph ralph-cli is(you need curl):
 
-  $ https://raw.githubusercontent.com/allegro/ralph-cli/beast/install.sh | bash -
+  $ curl https://raw.githubusercontent.com/allegro/ralph-cli/beast/install.sh | bash -
 
 
 MacOS

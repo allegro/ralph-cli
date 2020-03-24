@@ -81,7 +81,7 @@ def _get_ethernets(raw_macs, ilo_version):
                         eth = deepcopy(ETHERNET_TEMPLATE)
                         eth['mac'] = mac
                         ethernets.append(eth)
-    elif ilo_version == 'iLO4':
+    elif ilo_version in ['iLO4', 'iLO5']:
         for m in raw_macs:
             eth = deepcopy(ETHERNET_TEMPLATE)
             eth['mac'] = normalize_mac(m['MAC'])
@@ -191,7 +191,7 @@ def _prepare_host_data(raw_host_data, ilo_version):
                         host_data['mac_addresses'].append(part)
                         break
                 continue
-    elif ilo_version == 'iLO4':
+    elif ilo_version in ['iLO4', 'iLO5']:
         for part in raw_host_data:
             if part.get('Product Name') is not None:
                 host_data['sys_info'].append(part)
